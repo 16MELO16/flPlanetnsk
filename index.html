@@ -794,7 +794,7 @@
   <div class="header-inner">
     <div class="header-top">
       <a class="logo" href="#">
-        <div class="logo-icon">🌿</div>
+        <img src="logo.png" alt="Цветочная планета" class="logo-icon" style="width:52px;height:52px;object-fit:cover;object-position:top center;background:none;border-radius:50%;" />
         <div class="logo-text">
           Цветочная планета
           <span>Ботанический каталог · Новосибирск</span>
@@ -1168,8 +1168,8 @@ function buildCardHTML(p, section, isBouq) {
   const badgeHTML  = p.badge && BADGE_LABELS[p.badge]
     ? `<div class="badge ${BADGE_CLASSES[p.badge]}">${BADGE_LABELS[p.badge]}</div>` : '';
   const nameHTML   = p.name2
-    ? `<em>${esc(p.name1)}</em> ${esc(p.name2)}`
-    : `<em>${esc(p.name1)}</em>`;
+    ? `${esc(p.name1)} ${esc(p.name2)}`
+    : `${esc(p.name1)}`;
   const latinHTML  = p.latin  ? `<div class="card-latin">${esc(p.latin)}</div>` : '';
   const compHTML   = p.comp   ? `<div class="card-comp"><strong>Состав:</strong> ${esc(p.comp)}</div>` : '';
   const unitHTML   = p.unit   ? `<span>${esc(p.unit)}</span>` : '';
