@@ -142,7 +142,10 @@
       line-height: 1.4;
     }
 
-    /* Admin toggle button */
+    /* Admin toggle button — hidden, activated via Ctrl+Shift+E */
+    .btn-edit-toggle {
+      display: none !important;
+    }
     .btn-edit-toggle {
       display: flex;
       align-items: center;
@@ -1322,7 +1325,7 @@ const adminToggle = document.getElementById('adminToggle');
 const adminIcon   = document.getElementById('adminIcon');
 const adminLabel  = document.getElementById('adminLabel');
 
-adminToggle.addEventListener('click', () => {
+function toggleEditMode() {
   editMode = !editMode;
   header.classList.toggle('edit-mode', editMode);
   document.body.classList.toggle('edit-mode', editMode);
@@ -1338,6 +1341,15 @@ adminToggle.addEventListener('click', () => {
     showToast('Режим редактирования включён — нажмите ✕ на карточке чтобы удалить');
   } else {
     showToast('Изменения сохранены');
+  }
+}
+
+adminToggle.addEventListener('click', toggleEditMode);
+
+document.addEventListener('keydown', (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'E') {
+    e.preventDefault();
+    toggleEditMode();
   }
 });
 
