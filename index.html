@@ -1,0 +1,1759 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Цветочная планета — Ботанический каталог</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ─── CSS VARIABLES ─────────────────────────────────────────── */
+    :root {
+      --bg:            #F5F0E8;
+      --emerald:       #2D5A3D;
+      --emerald-light: #3d7a55;
+      --rose:          #C4856A;
+      --rose-light:    #d9a48f;
+      --chocolate:     #1A1008;
+      --card:          #FFFFFF;
+      --card-hover:    #FDFAF5;
+      --muted:         #7a6e62;
+      --border:        #e0d8cc;
+      --danger:        #c0392b;
+      --danger-light:  #e74c3c;
+      --shadow:        0 4px 24px rgba(26,16,8,.08);
+      --shadow-hover:  0 12px 40px rgba(26,16,8,.14);
+      --radius:        14px;
+      --tr:            .28s cubic-bezier(.4,0,.2,1);
+      --font-head:     'Playfair Display', Georgia, serif;
+      --font-body:     'Cormorant Garamond', Georgia, serif;
+    }
+
+    /* ─── RESET & BASE ──────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--chocolate);
+      font-size: 18px;
+      line-height: 1.65;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      opacity: .028;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+      background-size: 200px 200px;
+    }
+
+    /* ─── HEADER ────────────────────────────────────────────────── */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(245,240,232,.96);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      transition: border-color var(--tr);
+    }
+    header.edit-mode {
+      border-bottom-color: var(--rose);
+      box-shadow: 0 0 0 2px rgba(196,133,106,.15);
+    }
+    .edit-bar {
+      display: none;
+      background: linear-gradient(90deg, var(--rose), #b8734f);
+      color: #fff;
+      font-size: .78rem;
+      letter-spacing: .06em;
+      text-align: center;
+      padding: 5px 16px;
+      font-family: var(--font-body);
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    header.edit-mode .edit-bar { display: block; }
+
+    .header-inner {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+    .header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 0 10px;
+      gap: 12px;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      flex-shrink: 0;
+    }
+    .logo-icon {
+      width: 42px;
+      height: 42px;
+      background: var(--emerald);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+    .logo-text {
+      font-family: var(--font-head);
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--emerald);
+      line-height: 1.1;
+    }
+    .logo-text span {
+      display: block;
+      font-size: .75rem;
+      font-weight: 400;
+      font-style: italic;
+      color: var(--muted);
+      letter-spacing: .06em;
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .header-badge {
+      font-size: .78rem;
+      font-family: var(--font-body);
+      color: var(--muted);
+      letter-spacing: .04em;
+      text-align: right;
+      line-height: 1.4;
+    }
+
+    /* Admin toggle button */
+    .btn-edit-toggle {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      border-radius: 20px;
+      border: 1.5px solid var(--border);
+      background: transparent;
+      font-family: var(--font-body);
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      letter-spacing: .03em;
+      white-space: nowrap;
+      transition: background var(--tr), color var(--tr), border-color var(--tr);
+    }
+    .btn-edit-toggle:hover { border-color: var(--rose); color: var(--rose); }
+    header.edit-mode .btn-edit-toggle {
+      background: var(--rose);
+      color: #fff;
+      border-color: var(--rose);
+    }
+    header.edit-mode .btn-edit-toggle:hover { background: #b8734f; }
+
+    /* ─── TAB NAVIGATION ────────────────────────────────────────── */
+    .tabs-nav {
+      display: flex;
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      padding-bottom: 1px;
+    }
+    .tabs-nav::-webkit-scrollbar { display: none; }
+    .tab-btn {
+      font-family: var(--font-body);
+      font-size: .97rem;
+      font-weight: 500;
+      letter-spacing: .03em;
+      color: var(--muted);
+      background: none;
+      border: none;
+      border-bottom: 2.5px solid transparent;
+      padding: 12px 18px 10px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: color var(--tr), border-color var(--tr);
+    }
+    .tab-btn:hover { color: var(--chocolate); }
+    .tab-btn.active { color: var(--chocolate); border-bottom-color: var(--rose); font-weight: 600; }
+
+    @media (max-width: 660px) {
+      .tab-btn { font-size: .82rem; padding: 10px 11px 8px; }
+      .logo-text { font-size: 1.05rem; }
+      .header-badge { display: none; }
+    }
+
+    /* ─── MAIN ──────────────────────────────────────────────────── */
+    main {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 0 24px;
+      position: relative;
+      z-index: 1;
+    }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ─── SECTION HERO ──────────────────────────────────────────── */
+    .section-hero { padding: 60px 0 36px; text-align: center; }
+    .section-tag {
+      display: inline-block;
+      font-size: .8rem;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--rose);
+      font-family: var(--font-body);
+      margin-bottom: 10px;
+      font-weight: 500;
+    }
+    .section-title {
+      font-family: var(--font-head);
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 700;
+      color: var(--emerald);
+      line-height: 1.12;
+      margin-bottom: 14px;
+    }
+    .section-title em { font-style: italic; color: var(--rose); }
+    .section-desc { color: var(--muted); font-size: 1.05rem; max-width: 520px; margin: 0 auto; font-weight: 300; }
+    .divider {
+      width: 60px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--rose), transparent);
+      margin: 22px auto 0;
+    }
+
+    /* ─── PRODUCT GRIDS ─────────────────────────────────────────── */
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      padding-bottom: 80px;
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 28px;
+      padding-bottom: 80px;
+    }
+    @media (max-width: 900px) { .grid-3 { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 560px) { .grid-3, .grid-2 { grid-template-columns: 1fr; gap: 18px; } }
+
+    /* ─── PRODUCT CARD ──────────────────────────────────────────── */
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      cursor: default;
+      position: relative;
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity .5s ease, transform .5s ease, box-shadow var(--tr), background var(--tr), outline var(--tr);
+    }
+    .card.visible { opacity: 1; transform: translateY(0); }
+    .card:hover { box-shadow: var(--shadow-hover); transform: translateY(-4px); background: var(--card-hover); }
+
+    /* Edit mode card */
+    body.edit-mode .card { outline: 2px dashed transparent; }
+    body.edit-mode .card:hover { outline-color: var(--rose); transform: translateY(-2px); }
+
+    /* Badge */
+    .badge {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      z-index: 3;
+      font-size: .72rem;
+      font-family: var(--font-body);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+    .badge-hit  { background: var(--rose); color: #fff; }
+    .badge-rare { background: var(--emerald); color: #fff; }
+    .badge-new  { background: #7b5e3a; color: #fff; }
+
+    /* ─── DELETE BUTTON (admin) ─────────────────────────────────── */
+    .btn-delete-card {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 10;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--danger);
+      color: #fff;
+      border: 2px solid #fff;
+      font-size: 1rem;
+      line-height: 1;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(192,57,43,.4);
+      transition: background var(--tr), transform var(--tr);
+    }
+    .btn-delete-card:hover { background: var(--danger-light); transform: scale(1.12); }
+    body.edit-mode .btn-delete-card { display: flex; }
+
+    /* Card illustration */
+    .card-thumb {
+      width: 100%;
+      aspect-ratio: 4/3;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 4.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .card-bouq .card-thumb { aspect-ratio: 3/2.2; font-size: 5.5rem; }
+    .card-thumb .leaf-bg {
+      position: absolute;
+      inset: 0;
+      opacity: .07;
+      font-size: 8rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      filter: blur(2px);
+    }
+    .thumb-cut  { background: linear-gradient(135deg, #fdf3ee 0%, #f7e6dd 100%); }
+    .thumb-pot  { background: linear-gradient(135deg, #eef5ee 0%, #ddeedd 100%); }
+    .thumb-cut2 { background: linear-gradient(135deg, #fef8f2 0%, #f2eae0 100%); }
+    .thumb-bouq { background: linear-gradient(135deg, #fef6f9 0%, #f0dfe8 100%); }
+
+    .card-body { padding: 18px 20px 22px; }
+    .card-name { font-family: var(--font-head); font-size: 1.18rem; font-weight: 600; color: var(--chocolate); margin-bottom: 4px; line-height: 1.2; }
+    .card-bouq .card-name { font-size: 1.35rem; }
+    .card-name em { font-style: italic; color: var(--emerald); }
+    .card-latin { font-size: .8rem; color: var(--muted); font-style: italic; margin-bottom: 8px; }
+    .card-comp { font-size: .85rem; color: var(--muted); font-style: italic; font-weight: 300; margin-bottom: 10px; }
+    .card-comp strong { color: var(--chocolate); font-style: normal; font-weight: 500; }
+    .card-desc { font-size: .92rem; color: var(--muted); font-weight: 300; margin-bottom: 14px; line-height: 1.5; }
+    .card-footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .price { font-family: var(--font-head); font-size: 1.22rem; font-weight: 700; color: var(--emerald); }
+    .price span { font-size: .82rem; font-weight: 400; font-family: var(--font-body); color: var(--muted); margin-left: 2px; }
+    .btn-add {
+      background: var(--emerald);
+      color: #fff;
+      border: none;
+      border-radius: 30px;
+      padding: 8px 18px;
+      font-size: .82rem;
+      font-family: var(--font-body);
+      letter-spacing: .05em;
+      cursor: pointer;
+      transition: background var(--tr), transform var(--tr);
+    }
+    .btn-add:hover { background: var(--emerald-light); transform: scale(1.04); }
+
+    /* ─── ADD-ITEM CARD (placeholder) ──────────────────────────── */
+    .card-add-new {
+      background: transparent;
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      cursor: pointer;
+      min-height: 220px;
+      transition: border-color var(--tr), background var(--tr), transform var(--tr);
+      padding: 24px;
+      text-align: center;
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    .card-add-new.visible { opacity: 1; transform: translateY(0); }
+    body.edit-mode .card-add-new { display: flex; }
+    .card-add-new:hover { border-color: var(--emerald); background: rgba(45,90,61,.04); transform: translateY(-3px); }
+    .card-add-new .plus-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: var(--emerald);
+      color: #fff;
+      font-size: 1.6rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 16px rgba(45,90,61,.25);
+    }
+    .card-add-new p { font-family: var(--font-head); font-size: 1rem; color: var(--muted); font-style: italic; }
+
+    /* ─── MODAL ──────────────────────────────────────────────────── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(26,16,8,.55);
+      backdrop-filter: blur(6px);
+      z-index: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      opacity: 0;
+      transition: opacity .22s ease;
+    }
+    .modal-overlay.open { opacity: 1; }
+    .modal-overlay[hidden] { display: none; }
+    .modal-box {
+      background: var(--card);
+      border-radius: 20px;
+      box-shadow: 0 24px 80px rgba(26,16,8,.22);
+      width: 100%;
+      max-width: 560px;
+      max-height: 92vh;
+      overflow-y: auto;
+      padding: 36px 40px 32px;
+      position: relative;
+      transform: translateY(20px);
+      transition: transform .22s ease;
+    }
+    .modal-overlay.open .modal-box { transform: translateY(0); }
+    .modal-sm { max-width: 380px; text-align: center; padding: 40px 36px; }
+    .modal-close {
+      position: absolute;
+      top: 16px;
+      right: 18px;
+      background: none;
+      border: none;
+      font-size: 1.4rem;
+      color: var(--muted);
+      cursor: pointer;
+      line-height: 1;
+      transition: color var(--tr);
+    }
+    .modal-close:hover { color: var(--chocolate); }
+    .modal-title {
+      font-family: var(--font-head);
+      font-size: 1.6rem;
+      color: var(--emerald);
+      margin-bottom: 4px;
+    }
+    .modal-sub { font-size: .9rem; color: var(--muted); margin-bottom: 26px; }
+
+    /* ─── FORM FIELDS (shared) ───────────────────────────────────── */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .form-full { grid-column: 1 / -1; }
+    .field { display: flex; flex-direction: column; gap: 5px; }
+    .field label {
+      font-size: .75rem;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .field input,
+    .field textarea,
+    .field select {
+      font-family: var(--font-body);
+      font-size: .97rem;
+      color: var(--chocolate);
+      background: var(--bg);
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 13px;
+      outline: none;
+      transition: border-color var(--tr), box-shadow var(--tr);
+      width: 100%;
+    }
+    .field input:focus,
+    .field textarea:focus,
+    .field select:focus {
+      border-color: var(--emerald);
+      box-shadow: 0 0 0 3px rgba(45,90,61,.1);
+    }
+    .field input.error,
+    .field textarea.error { border-color: var(--danger); }
+    .field .err-msg { font-size: .76rem; color: var(--danger); display: none; }
+    .field .err-msg.show { display: block; }
+    .field textarea { resize: vertical; min-height: 80px; }
+    .field-hint { font-size: .76rem; color: var(--muted); font-style: italic; }
+
+    /* Emoji preview row */
+    .emoji-row { display: flex; align-items: center; gap: 10px; }
+    .emoji-row input { flex: 1; }
+    .emoji-preview {
+      width: 46px;
+      height: 46px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #fdf3ee, #f7e6dd);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+      flex-shrink: 0;
+      border: 1.5px solid var(--border);
+    }
+
+    .modal-actions { display: flex; gap: 10px; margin-top: 22px; }
+    .btn-primary {
+      flex: 1;
+      background: var(--emerald);
+      color: #fff;
+      border: none;
+      border-radius: 30px;
+      padding: 13px 20px;
+      font-family: var(--font-head);
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background var(--tr), transform var(--tr);
+    }
+    .btn-primary:hover { background: var(--emerald-light); transform: translateY(-1px); }
+    .btn-secondary {
+      flex: 1;
+      background: none;
+      color: var(--muted);
+      border: 1.5px solid var(--border);
+      border-radius: 30px;
+      padding: 13px 20px;
+      font-family: var(--font-head);
+      font-size: 1rem;
+      cursor: pointer;
+      transition: border-color var(--tr), color var(--tr);
+    }
+    .btn-secondary:hover { border-color: var(--chocolate); color: var(--chocolate); }
+    .btn-danger {
+      background: var(--danger);
+      color: #fff;
+      border: none;
+      border-radius: 30px;
+      padding: 13px 24px;
+      font-family: var(--font-head);
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background var(--tr);
+      width: 100%;
+      margin-top: 14px;
+    }
+    .btn-danger:hover { background: var(--danger-light); }
+
+    /* Delete confirm modal */
+    .del-icon { font-size: 2.8rem; margin-bottom: 4px; }
+    .del-title { font-family: var(--font-head); font-size: 1.4rem; color: var(--chocolate); margin-bottom: 8px; }
+    .del-desc { font-size: .92rem; color: var(--muted); margin-bottom: 4px; }
+    .del-name { font-family: var(--font-head); font-size: 1rem; color: var(--danger); font-style: italic; }
+    .del-actions { display: flex; gap: 10px; margin-top: 22px; }
+
+    @media (max-width: 560px) {
+      .modal-box { padding: 28px 20px 24px; }
+      .form-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ─── CONTACTS ──────────────────────────────────────────────── */
+    .contacts-wrap {
+      padding: 60px 0 80px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 40px;
+    }
+    .contacts-card {
+      background: var(--card);
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      padding: 50px 56px;
+      max-width: 640px;
+      width: 100%;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .contacts-card::before { content: '🌿'; position: absolute; font-size: 140px; opacity: .04; top: -30px; right: -20px; pointer-events: none; }
+    .contacts-card::after  { content: '🌸'; position: absolute; font-size: 110px; opacity: .04; bottom: -20px; left: -10px; pointer-events: none; }
+    .contacts-title { font-family: var(--font-head); font-size: 2rem; color: var(--emerald); margin-bottom: 8px; }
+    .contacts-subtitle { color: var(--muted); font-size: .95rem; font-style: italic; margin-bottom: 32px; }
+    .contacts-list { list-style: none; display: flex; flex-direction: column; gap: 14px; margin-bottom: 32px; }
+    .contacts-list li { display: flex; align-items: flex-start; gap: 14px; font-size: 1rem; color: var(--chocolate); text-align: left; }
+    .c-icon { width: 38px; height: 38px; background: var(--bg); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0; border: 1px solid var(--border); }
+    .c-label { font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; display: block; margin-bottom: 1px; }
+    .c-val { font-size: 1rem; }
+    .c-val a { color: var(--emerald); text-decoration: none; border-bottom: 1px solid transparent; transition: border-color var(--tr); }
+    .c-val a:hover { border-color: var(--emerald); }
+    .hours-row { display: flex; justify-content: space-between; font-size: .9rem; padding: 4px 0; border-bottom: 1px dotted var(--border); }
+    .hours-row:last-child { border-bottom: none; }
+    .hours-row .day { color: var(--muted); }
+    .hours-row .time { font-weight: 500; }
+    .social-row { display: flex; gap: 10px; justify-content: center; margin-top: 28px; flex-wrap: wrap; }
+    .social-btn {
+      display: flex; align-items: center; gap: 7px; padding: 8px 16px; border-radius: 30px;
+      background: var(--bg); border: 1px solid var(--border); font-size: .85rem;
+      font-family: var(--font-body); color: var(--chocolate); text-decoration: none;
+      transition: background var(--tr), border-color var(--tr), transform var(--tr);
+    }
+    .social-btn:hover { background: var(--emerald); color: #fff; border-color: var(--emerald); transform: translateY(-2px); }
+
+    /* ─── CONTACT FORM ──────────────────────────────────────────── */
+    .form-card { background: var(--card); border-radius: 22px; box-shadow: var(--shadow); padding: 44px 50px; max-width: 640px; width: 100%; }
+    .form-title { font-family: var(--font-head); font-size: 1.5rem; color: var(--emerald); margin-bottom: 6px; }
+    .form-sub { font-size: .9rem; color: var(--muted); margin-bottom: 28px; }
+    .btn-submit {
+      width: 100%; background: var(--emerald); color: #fff; border: none; border-radius: 30px;
+      padding: 14px 24px; font-family: var(--font-head); font-size: 1.05rem; font-weight: 600;
+      letter-spacing: .04em; cursor: pointer; margin-top: 8px;
+      transition: background var(--tr), transform var(--tr);
+    }
+    .btn-submit:hover { background: var(--emerald-light); transform: translateY(-2px); }
+    .success-msg {
+      display: none; flex-direction: column; align-items: center; gap: 12px;
+      text-align: center; padding: 40px 20px;
+    }
+    .success-msg.show { display: flex; }
+    .success-icon { font-size: 3rem; }
+    .success-msg h3 { font-family: var(--font-head); font-size: 1.5rem; color: var(--emerald); }
+    .success-msg p { color: var(--muted); font-size: .95rem; }
+
+    @media (max-width: 700px) {
+      .contacts-card, .form-card { padding: 32px 22px; }
+      .contacts-title { font-size: 1.5rem; }
+    }
+
+    /* ─── SCROLL-TO-TOP ─────────────────────────────────────────── */
+    #scrollTop {
+      position: fixed; bottom: 28px; right: 28px; width: 44px; height: 44px;
+      background: var(--emerald); color: #fff; border: none; border-radius: 50%;
+      font-size: 1.2rem; cursor: pointer; box-shadow: 0 4px 16px rgba(45,90,61,.3);
+      transition: opacity var(--tr), transform var(--tr), background var(--tr);
+      opacity: 0; transform: translateY(12px); pointer-events: none;
+      z-index: 200; display: flex; align-items: center; justify-content: center;
+    }
+    #scrollTop.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
+    #scrollTop:hover { background: var(--emerald-light); }
+
+    /* ─── FOOTER ─────────────────────────────────────────────────── */
+    footer { border-top: 1px solid var(--border); text-align: center; padding: 24px; font-size: .82rem; color: var(--muted); font-style: italic; }
+    footer strong { color: var(--emerald); font-style: normal; }
+
+    /* ─── CARD PHOTO ────────────────────────────────────────────── */
+    .card-thumb { position: relative; }
+    .card-thumb .thumb-img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      z-index: 1;
+    }
+    /* camera button — visible in edit mode on each card */
+    .btn-photo-card {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      z-index: 12;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.92);
+      border: 1.5px solid var(--border);
+      font-size: 1rem;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 10px rgba(26,16,8,.18);
+      transition: background var(--tr), transform var(--tr);
+    }
+    .btn-photo-card:hover { background: #fff; transform: scale(1.12); }
+    body.edit-mode .btn-photo-card { display: flex; }
+
+    /* remove-photo button (appears when card already has photo) */
+    .btn-remove-photo {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      z-index: 12;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: rgba(192,57,43,.82);
+      color: #fff;
+      border: 1.5px solid #fff;
+      font-size: .75rem;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(192,57,43,.35);
+      transition: background var(--tr), transform var(--tr);
+    }
+    .btn-remove-photo:hover { background: var(--danger-light); transform: scale(1.1); }
+    body.edit-mode .card-thumb.has-photo .btn-remove-photo { display: flex; }
+
+    /* ─── PHOTO UPLOAD ZONE (in add modal) ──────────────────────── */
+    .photo-drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 22px 14px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color var(--tr), background var(--tr);
+      position: relative;
+      overflow: hidden;
+      background: var(--bg);
+    }
+    .photo-drop-zone:hover,
+    .photo-drop-zone.drag-over { border-color: var(--emerald); background: rgba(45,90,61,.05); }
+    .photo-drop-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+      font-size: 0;
+    }
+    .drop-icon { font-size: 2rem; margin-bottom: 6px; }
+    .drop-text { font-size: .88rem; color: var(--muted); line-height: 1.4; }
+    .drop-text strong { color: var(--emerald); }
+
+    .photo-preview-wrap {
+      display: none;
+      border-radius: 10px;
+      overflow: hidden;
+      aspect-ratio: 4/3;
+      background: #f0ebe3;
+      position: relative;
+    }
+    .photo-preview-wrap.show { display: block; }
+    .photo-preview-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .photo-preview-remove {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: rgba(192,57,43,.88);
+      color: #fff;
+      border: none;
+      font-size: .85rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background var(--tr);
+    }
+    .photo-preview-remove:hover { background: var(--danger-light); }
+
+    /* ─── TOAST NOTIFICATION ────────────────────────────────────── */
+    .toast {
+      position: fixed;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--chocolate);
+      color: #fff;
+      font-family: var(--font-body);
+      font-size: .9rem;
+      padding: 10px 22px;
+      border-radius: 30px;
+      box-shadow: 0 6px 24px rgba(26,16,8,.25);
+      z-index: 600;
+      opacity: 0;
+      transition: opacity .25s ease, transform .25s ease;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════ HEADER ══════════════════════ -->
+<header id="siteHeader">
+  <div class="edit-bar">✏ Режим редактирования — карточки можно удалять и добавлять</div>
+  <div class="header-inner">
+    <div class="header-top">
+      <a class="logo" href="#">
+        <div class="logo-icon">🌿</div>
+        <div class="logo-text">
+          Цветочная планета
+          <span>Ботанический каталог · Новосибирск</span>
+        </div>
+      </a>
+      <div class="header-right">
+        <div class="header-badge">Срезка · Горшечные<br>Черенки · Букеты</div>
+        <button class="btn-edit-toggle" id="adminToggle" title="Управление каталогом">
+          <span id="adminIcon">✏️</span>
+          <span id="adminLabel">Редактировать</span>
+        </button>
+      </div>
+    </div>
+    <nav class="tabs-nav" role="tablist">
+      <button class="tab-btn active" role="tab" data-tab="cut">🌹 Срезанные цветы</button>
+      <button class="tab-btn" role="tab" data-tab="pot">🌷 Горшечные растения</button>
+      <button class="tab-btn" role="tab" data-tab="cuttings">🌿 Черенки и саженцы</button>
+      <button class="tab-btn" role="tab" data-tab="bouquets">💐 Букеты и композиции</button>
+      <button class="tab-btn" role="tab" data-tab="contacts">📞 Контакты</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <!-- ═══════════════ TAB: СРЕЗАННЫЕ ЦВЕТЫ ══════════════════════ -->
+  <section class="tab-panel active" id="tab-cut" role="tabpanel">
+    <div class="section-hero">
+      <span class="section-tag">Свежая срезка</span>
+      <h1 class="section-title">Срезанные <em>цветы</em></h1>
+      <p class="section-desc">Отборные стебли прямо с плантаций — каждый букет начинается здесь</p>
+      <div class="divider"></div>
+    </div>
+    <div class="grid-3" id="grid-cut"></div>
+  </section>
+
+  <!-- ═══════════════ TAB: ГОРШЕЧНЫЕ РАСТЕНИЯ ══════════════════ -->
+  <section class="tab-panel" id="tab-pot" role="tabpanel">
+    <div class="section-hero">
+      <span class="section-tag">Живой интерьер</span>
+      <h1 class="section-title">Горшечные <em>растения</em></h1>
+      <p class="section-desc">Зелёные жители для вашего дома и офиса — неприхотливые и эффектные</p>
+      <div class="divider"></div>
+    </div>
+    <div class="grid-3" id="grid-pot"></div>
+  </section>
+
+  <!-- ═══════════════ TAB: ЧЕРЕНКИ И САЖЕНЦЫ ══════════════════ -->
+  <section class="tab-panel" id="tab-cuttings" role="tabpanel">
+    <div class="section-hero">
+      <span class="section-tag">Для коллекционеров</span>
+      <h1 class="section-title">Черенки <em>&amp;</em> саженцы</h1>
+      <p class="section-desc">Начните коллекцию с нуля — укоренённые и готовые к росту экземпляры</p>
+      <div class="divider"></div>
+    </div>
+    <div class="grid-3" id="grid-cuttings"></div>
+  </section>
+
+  <!-- ═══════════════ TAB: БУКЕТЫ И КОМПОЗИЦИИ ════════════════ -->
+  <section class="tab-panel" id="tab-bouquets" role="tabpanel">
+    <div class="section-hero">
+      <span class="section-tag">Авторская флористика</span>
+      <h1 class="section-title">Букеты <em>&amp;</em> композиции</h1>
+      <p class="section-desc">Каждая работа создаётся вручную нашими флористами с любовью к деталям</p>
+      <div class="divider"></div>
+    </div>
+    <div class="grid-2" id="grid-bouquets"></div>
+  </section>
+
+  <!-- ═══════════════ TAB: КОНТАКТЫ ═══════════════════════════ -->
+  <section class="tab-panel" id="tab-contacts" role="tabpanel">
+    <div class="contacts-wrap">
+      <div class="contacts-card">
+        <h2 class="contacts-title">Мы рады вас слышать 🌿</h2>
+        <p class="contacts-subtitle">Приходите в гости или напишите — ответим в течение часа</p>
+        <ul class="contacts-list">
+          <li>
+            <div class="c-icon">📍</div>
+            <div><span class="c-label">Адрес</span><span class="c-val">г. Новосибирск, с. Кубовая, ул. Клубная, 6</span></div>
+          </li>
+          <li>
+            <div class="c-icon">📞</div>
+            <div><span class="c-label">Телефон</span><span class="c-val"><a href="tel:+79130610131">+7 (913) 061-01-31</a></span></div>
+          </li>
+          <li>
+            <div class="c-icon">✉️</div>
+            <div><span class="c-label">Email</span><span class="c-val"><a href="mailto:flower-planet-nsk@rambler.ru">flower-planet-nsk@rambler.ru</a></span></div>
+          </li>
+          <li>
+            <div class="c-icon">🕐</div>
+            <div style="width:100%">
+              <span class="c-label">Часы работы</span>
+              <div style="margin-top:6px">
+                <div class="hours-row"><span class="day">Пн — Пт</span><span class="time">09:00 — 20:00</span></div>
+                <div class="hours-row"><span class="day">Суббота</span><span class="time">10:00 — 20:00</span></div>
+                <div class="hours-row"><span class="day">Воскресенье</span><span class="time">10:00 — 18:00</span></div>
+              </div>
+            </div>
+          </li>
+        </ul>
+        <div class="social-row">
+          <a class="social-btn" href="https://t.me/cvet_nsk" target="_blank" rel="noopener">✈️ Telegram</a>
+          <a class="social-btn" href="#" target="_blank" rel="noopener">💬 ВКонтакте</a>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <h3 class="form-title">Напишите нам</h3>
+        <p class="form-sub">Заказ букета, вопрос о наличии, или просто привет — мы ответим</p>
+        <form id="contactForm" novalidate>
+          <input type="hidden" name="access_key" value="efcb71a4-13dc-4add-8050-870df089aa08" />
+          <input type="hidden" name="subject" id="fsubject-hidden" value="Новая заявка с сайта Цветочная планета" />
+          <input type="hidden" name="from_name" value="Цветочная планета" />
+          <div class="form-grid">
+            <div class="field">
+              <label for="fname">Ваше имя *</label>
+              <input type="text" id="fname" name="name" placeholder="Александра" autocomplete="given-name" />
+              <span class="err-msg" id="fname-err">Пожалуйста, укажите имя</span>
+            </div>
+            <div class="field">
+              <label for="fphone">Телефон *</label>
+              <input type="tel" id="fphone" name="phone" placeholder="+7 (___) ___-__-__" autocomplete="tel" />
+              <span class="err-msg" id="fphone-err">Введите корректный номер</span>
+            </div>
+            <div class="field form-full">
+              <label for="femail">Email</label>
+              <input type="email" id="femail" name="email" placeholder="your@email.ru" autocomplete="email" />
+              <span class="err-msg" id="femail-err">Некорректный email</span>
+            </div>
+            <div class="field form-full">
+              <label for="fsubject">Тема</label>
+              <select id="fsubject" name="topic">
+                <option value="">— Выберите тему —</option>
+                <option>Заказ букета или композиции</option>
+                <option>Наличие товара</option>
+                <option>Корпоративное оформление</option>
+                <option>Другое</option>
+              </select>
+            </div>
+            <div class="field form-full">
+              <label for="fmsg">Сообщение *</label>
+              <textarea id="fmsg" name="message" placeholder="Расскажите, что вас интересует…"></textarea>
+              <span class="err-msg" id="fmsg-err">Пожалуйста, напишите сообщение</span>
+            </div>
+          </div>
+          <button type="submit" class="btn-submit" id="btnSubmit">Отправить сообщение</button>
+        </form>
+        <div class="success-msg" id="successMsg">
+          <div class="success-icon">🌸</div>
+          <h3>Сообщение отправлено!</h3>
+          <p>Мы получили ваш запрос и ответим в течение часа в рабочее время.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>© 2024 <strong>Цветочная планета</strong> · г. Новосибирск, с. Кубовая, ул. Клубная, 6 · Все права защищены</footer>
+<button id="scrollTop" aria-label="Наверх">↑</button>
+
+<!-- ═══════════════════ MODAL: ДОБАВИТЬ ПОЗИЦИЮ ════════════════ -->
+<div class="modal-overlay" id="addModal" hidden>
+  <div class="modal-box">
+    <button class="modal-close" id="addModalClose" aria-label="Закрыть">✕</button>
+    <div class="modal-title">Новая позиция</div>
+    <div class="modal-sub">Заполните поля — карточка появится в выбранном разделе</div>
+
+    <form id="addForm" novalidate>
+      <div class="form-grid">
+
+        <div class="field form-full">
+          <label for="af-section">Раздел каталога *</label>
+          <select id="af-section">
+            <option value="">— Выберите раздел —</option>
+            <option value="cut">🌹 Срезанные цветы</option>
+            <option value="pot">🌷 Горшечные растения</option>
+            <option value="cuttings">🌿 Черенки и саженцы</option>
+            <option value="bouquets">💐 Букеты и композиции</option>
+          </select>
+          <span class="err-msg" id="af-section-err">Выберите раздел</span>
+        </div>
+
+        <div class="field form-full">
+          <label for="af-emoji">Эмодзи-иллюстрация *</label>
+          <div class="emoji-row">
+            <input type="text" id="af-emoji" placeholder="🌸" maxlength="4" />
+            <div class="emoji-preview" id="af-emoji-preview">🌸</div>
+          </div>
+          <span class="err-msg" id="af-emoji-err">Введите эмодзи</span>
+        </div>
+
+        <div class="field">
+          <label for="af-name1">Название (курсив) *</label>
+          <input type="text" id="af-name1" placeholder="Роза" />
+          <span class="err-msg" id="af-name1-err">Введите название</span>
+        </div>
+        <div class="field">
+          <label for="af-name2">Продолжение (обычный)</label>
+          <input type="text" id="af-name2" placeholder="садовая" />
+        </div>
+
+        <div class="field form-full">
+          <label for="af-latin">Латинское название</label>
+          <input type="text" id="af-latin" placeholder="Rosa × hybrida" />
+        </div>
+
+        <div class="field form-full" id="af-comp-wrap" style="display:none">
+          <label for="af-comp">Состав букета</label>
+          <input type="text" id="af-comp" placeholder="25 роз, зелень, атласная лента" />
+        </div>
+
+        <div class="field form-full">
+          <label for="af-desc">Описание *</label>
+          <textarea id="af-desc" placeholder="Краткое описание — особенности, размер, период цветения…"></textarea>
+          <span class="err-msg" id="af-desc-err">Введите описание</span>
+        </div>
+
+        <div class="field">
+          <label for="af-price">Цена *</label>
+          <input type="text" id="af-price" placeholder="350 ₽" />
+          <span class="err-msg" id="af-price-err">Введите цену</span>
+        </div>
+        <div class="field">
+          <label for="af-unit">Единица</label>
+          <input type="text" id="af-unit" placeholder="/ шт" />
+        </div>
+
+        <div class="field form-full">
+          <label for="af-badge">Бейдж</label>
+          <select id="af-badge">
+            <option value="">— Без бейджа —</option>
+            <option value="hit">Хит</option>
+            <option value="rare">Редкий</option>
+            <option value="new">Новинка</option>
+          </select>
+        </div>
+
+        <div class="field form-full">
+          <label>Фотография товара</label>
+          <!-- preview (shown after selection) -->
+          <div class="photo-preview-wrap" id="af-photo-preview-wrap">
+            <img id="af-photo-preview-img" src="" alt="Предпросмотр" />
+            <button type="button" class="photo-preview-remove" id="af-photo-remove" aria-label="Удалить фото">✕</button>
+          </div>
+          <!-- drop zone (hidden after selection) -->
+          <div class="photo-drop-zone" id="af-drop-zone">
+            <input type="file" id="af-photo" accept="image/*" />
+            <div class="drop-icon">📷</div>
+            <div class="drop-text">
+              <strong>Нажмите или перетащите</strong><br>
+              JPG, PNG, WebP · сжимается автоматически
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" id="addFormCancel">Отмена</button>
+        <button type="submit" class="btn-primary">Добавить в каталог</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ═══════════════════ MODAL: ПОДТВЕРЖДЕНИЕ УДАЛЕНИЯ ═════════ -->
+<div class="modal-overlay" id="deleteModal" hidden>
+  <div class="modal-box modal-sm">
+    <div class="del-icon">🗑️</div>
+    <div class="del-title">Удалить позицию?</div>
+    <div class="del-desc">Вы удаляете:</div>
+    <div class="del-name" id="del-card-name">—</div>
+    <p style="font-size:.82rem;color:var(--muted);margin-top:8px">Это действие можно отменить, нажав «Восстановить всё» в меню редактирования</p>
+    <div class="del-actions">
+      <button class="btn-secondary" id="delCancel" style="flex:1">Оставить</button>
+      <button class="btn-danger" id="delConfirm" style="flex:1;margin-top:0;padding:13px 20px">Удалить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Hidden file input for editing photo of existing cards -->
+<input type="file" id="cardPhotoInput" accept="image/*" style="display:none" />
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   DATA — все продукты каталога
+   ═══════════════════════════════════════════════════════════════ */
+const DEFAULT_PRODUCTS = {
+  cut: [
+    { id:'cut-1', emoji:'🌹', bg:'🌹', badge:'hit',  name1:'Роза',       name2:'садовая',     latin:'Rosa × hybrida',          desc:'Классика флористики. Бархатные лепестки, устойчивый аромат, стебель 60–70 см.',                 price:'220 ₽', unit:'/ шт' },
+    { id:'cut-2', emoji:'🌸', bg:'🌸', badge:'rare', name1:'Пион',       name2:'садовый',     latin:'Paeonia lactiflora',       desc:'Сезонный фаворит с пышными махровыми цветами и сладким ароматом.',                              price:'380 ₽', unit:'/ шт' },
+    { id:'cut-3', emoji:'🌷', bg:'🌷', badge:null,   name1:'Тюльпан',    name2:'',            latin:'Tulipa gesneriana',        desc:'Весенний символ. Доступен в 12+ сортах: махровые, попугайные, бахромчатые.',                    price:'95 ₽',  unit:'/ шт' },
+    { id:'cut-4', emoji:'🌺', bg:'💐', badge:'hit',  name1:'Лилия',      name2:'восточная',   latin:'Lilium orientalis',        desc:'Роскошный аромат, крупные цветы до 25 см. Стебель с 3–5 бутонами.',                             price:'310 ₽', unit:'/ шт' },
+    { id:'cut-5', emoji:'🌼', bg:'🌼', badge:null,   name1:'Хризантема', name2:'кустовая',    latin:'Chrysanthemum morifolium', desc:'Долговечная срезка до 3-х недель. Пышный куст, идеальна для объёмных букетов.',                 price:'145 ₽', unit:'/ шт' },
+    { id:'cut-6', emoji:'🪷', bg:'🌸', badge:'rare', name1:'Орхидея',    name2:'Цимбидиум',   latin:'Cymbidium sp.',            desc:'Экзотическая срезка. Одна ветка несёт 8–12 цветков, стоит до 4 недель.',                        price:'650 ₽', unit:'/ шт' },
+    { id:'cut-7', emoji:'🌻', bg:'🌻', badge:null,   name1:'Гербера',    name2:'',            latin:'Gerbera jamesonii',        desc:'Яркие солнечные цветы. Более 50 оттенков, стебель 50 см, в наличии весь год.',                  price:'130 ₽', unit:'/ шт' },
+    { id:'cut-8', emoji:'🌷', bg:'💜', badge:'new',  name1:'Ирис',       name2:'голландский', latin:'Iris × hollandica',        desc:'Нежная фиолетовая гамма. Изысканная геометрия лепестков, лёгкий аромат.',                       price:'175 ₽', unit:'/ шт' },
+  ],
+  pot: [
+    { id:'pot-1', emoji:'🌿', bg:'🌿', badge:'hit',  name1:'Монстера',    name2:'деликатная',  latin:'Monstera deliciosa',       desc:'Тропическая икона с резными листьями. Горшок Ø17 см, высота 55 см.',        price:'1 490 ₽', unit:'' },
+    { id:'pot-2', emoji:'🌸', bg:'🌸', badge:null,   name1:'Спатифиллум', name2:'',            latin:'Spathiphyllum wallisii',   desc:'«Женское счастье» — цветёт белыми парусами, очищает воздух. Горшок Ø14.',  price:'690 ₽',   unit:'' },
+    { id:'pot-3', emoji:'🌱', bg:'🌱', badge:'hit',  name1:'Замиокулькас',name2:'',            latin:'Zamioculcas zamiifolia',   desc:'«Долларовое дерево» — суперустойчив к засухе, глянцевые тёмно-зелёные листья.', price:'1 150 ₽', unit:'' },
+    { id:'pot-4', emoji:'🌴', bg:'🌴', badge:null,   name1:'Драцена',     name2:'окаймлённая', latin:'Dracaena marginata',       desc:'Стройная пальма с красно-зелёными листьями. Высота 80 см, горшок Ø19 см.', price:'2 200 ₽', unit:'' },
+    { id:'pot-5', emoji:'🍃', bg:'🍃', badge:null,   name1:'Хлорофитум',  name2:'хохлатый',    latin:'Chlorophytum comosum',     desc:'Каскадные пёстрые листья и дочерние розетки. Идеален для ампелей.',         price:'390 ₽',   unit:'' },
+    { id:'pot-6', emoji:'🌺', bg:'🌺', badge:'rare', name1:'Антуриум',    name2:'',            latin:'Anthurium andraeanum',     desc:'Лаковые ало-красные соцветия круглый год. Горшок Ø13 см.',                  price:'1 890 ₽', unit:'' },
+    { id:'pot-7', emoji:'🪴', bg:'🌿', badge:null,   name1:'Фикус',       name2:'Бенджамина',  latin:'Ficus benjamina',          desc:'Классическое деревце с воздушной кроной. Высота 90 см, горшок Ø21 см.',    price:'3 100 ₽', unit:'' },
+    { id:'pot-8', emoji:'🌵', bg:'🌵', badge:null,   name1:'Сансевиерия', name2:'',            latin:'Sansevieria trifasciata',  desc:'«Тёщин язык» — почти нетребователен к уходу, мощный очиститель воздуха.',  price:'550 ₽',   unit:'' },
+  ],
+  cuttings: [
+    { id:'cut2-1', emoji:'🌸', bg:'🌸', badge:'hit',  name1:'Бегония',      name2:'черенок',   latin:'Begonia rex hybrid',       desc:'Укоренённый черенок в стакане. Пёстрые листья-картины, быстрый рост.',           price:'250 ₽',   unit:'' },
+    { id:'cut2-2', emoji:'🍃', bg:'🍃', badge:'hit',  name1:'Потос',        name2:'золотой',   latin:'Epipremnum aureum',        desc:'Классика для новичков. Черенок с 3–4 листьями, корни уже развиты.',              price:'180 ₽',   unit:'' },
+    { id:'cut2-3', emoji:'🪴', bg:'🌿', badge:'rare', name1:'Хойя',         name2:'kerrii',    latin:'Hoya kerrii',              desc:'Суккулентные сердечки-листья. Черенок в грунте, укоренён, редкий вид.',           price:'450 ₽',   unit:'' },
+    { id:'cut2-4', emoji:'🌳', bg:'🌳', badge:null,   name1:'Фикус',        name2:'лировидный',latin:'Ficus lyrata',             desc:'Трендовый крупнолистный фикус. Саженец 30–40 см, горшок Ø10 см.',                price:'1 100 ₽', unit:'' },
+    { id:'cut2-5', emoji:'🌱', bg:'🌱', badge:'rare', name1:'Пахира',       name2:'водная',    latin:'Pachira aquatica',         desc:'«Денежное дерево» с плетёным стволом. Саженец 25 см, плетёный.',                price:'890 ₽',   unit:'' },
+    { id:'cut2-6', emoji:'🌸', bg:'🌸', badge:null,   name1:'Стрептокарпус',name2:'',          latin:'Streptocarpus hybrida',    desc:'Листовой черенок с детками. Цветёт обильно и долго — 9 месяцев в году.',        price:'320 ₽',   unit:'' },
+    { id:'cut2-7', emoji:'🪷', bg:'💜', badge:'new',  name1:'Глоксиния',    name2:'',          latin:'Sinningia speciosa',       desc:'Бархатные колокольчики крупных цветов. Черенок листовой, уже укоренён.',         price:'280 ₽',   unit:'' },
+    { id:'cut2-8', emoji:'🪨', bg:'🌵', badge:'hit',  name1:'Эхеверия',     name2:'розетка',   latin:'Echeveria elegans',        desc:'Каменная роза из суккулентов. Детка с корнями, 5–7 см в диаметре.',             price:'190 ₽',   unit:'' },
+  ],
+  bouquets: [
+    { id:'bouq-1', emoji:'💍', bg:'💐', badge:'hit',  name1:'Свадебный',  name2:'букет невесты',   comp:'белые пионы, эустома, гринери, лента атласная',                          desc:'Нежная классика для особенного дня. Индивидуальная сборка под платье.',                            price:'6 500 ₽', unit:'' },
+    { id:'bouq-2', emoji:'🌸', bg:'🌸', badge:'rare', name1:'Монобукет',  name2:'из пионов',       comp:'25 пионов сортовых, упаковка крафт, рафия',                              desc:'Роскошный объём из одного цветка — эффект максимальный, вкус безупречный.',                        price:'9 500 ₽', unit:'' },
+    { id:'bouq-3', emoji:'🪴', bg:'🪴', badge:null,   name1:'Корзина',    name2:'с суккулентами',  comp:'12 видов суккулентов, мох, декоративные камни, ивовая корзина',          desc:'Живой подарок, который будет радовать годами. Идеально для дома и офиса.',                         price:'4 200 ₽', unit:'' },
+    { id:'bouq-4', emoji:'🎁', bg:'🌹', badge:'hit',  name1:'Коробка',    name2:'с розами',        comp:'25 роз сорта «Джулия», флористическая пена, шляпная коробка',            desc:'Безупречная классика в элегантной упаковке. Выбор цвета — на ваше усмотрение.',                   price:'7 800 ₽', unit:'' },
+    { id:'bouq-5', emoji:'🌷', bg:'🌷', badge:null,   name1:'Весенний',   name2:'микс',            comp:'тюльпаны, нарциссы, мускари, веточки сирени, зелень',                    desc:'Ароматная весна в руках. Сборный букет из лучших сезонных цветов.',                               price:'3 400 ₽', unit:'' },
+    { id:'bouq-6', emoji:'🌿', bg:'🎨', badge:'new',  name1:'Авторская',  name2:'композиция',      comp:'подбор флориста по сезону и вашему запросу',                             desc:'Уникальная работа нашего флориста: от концепции до каждого стебля. Нет двух одинаковых.',         price:'от 5 000 ₽', unit:'' },
+  ]
+};
+
+/* Маппинги */
+const THUMB_CLASS = { cut:'thumb-cut', pot:'thumb-pot', cuttings:'thumb-cut2', bouquets:'thumb-bouq' };
+const BADGE_LABELS = { hit:'Хит', rare:'Редкий', new:'Новинка' };
+const BADGE_CLASSES = { hit:'badge-hit', rare:'badge-rare', new:'badge-new' };
+const BTN_LABELS = { cut:'В заказ', pot:'В заказ', cuttings:'В заказ', bouquets:'Заказать' };
+
+/* ═══════════════════════════════════════════════════════════════
+   STORAGE — localStorage (deleted IDs + added products)
+   ═══════════════════════════════════════════════════════════════ */
+const LS_DELETED = 'fp_deleted';
+const LS_ADDED   = 'fp_added';
+
+function getDeleted() {
+  try { return new Set(JSON.parse(localStorage.getItem(LS_DELETED) || '[]')); }
+  catch { return new Set(); }
+}
+function saveDeleted(set) {
+  localStorage.setItem(LS_DELETED, JSON.stringify([...set]));
+}
+function getAdded() {
+  try { return JSON.parse(localStorage.getItem(LS_ADDED) || '[]'); }
+  catch { return []; }
+}
+function saveAdded(arr) {
+  localStorage.setItem(LS_ADDED, JSON.stringify(arr));
+}
+
+/* Получить все продукты для секции (дефолтные - удалённые + добавленные) */
+function getProducts(section) {
+  const deleted = getDeleted();
+  const added   = getAdded();
+  const defaults = (DEFAULT_PRODUCTS[section] || []).filter(p => !deleted.has(p.id));
+  const extra    = added.filter(p => p.section === section);
+  return [...defaults, ...extra];
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RENDER
+   ═══════════════════════════════════════════════════════════════ */
+function buildCardHTML(p, section, isBouq) {
+  const thumbClass = THUMB_CLASS[section] || 'thumb-cut';
+  const badgeHTML  = p.badge && BADGE_LABELS[p.badge]
+    ? `<div class="badge ${BADGE_CLASSES[p.badge]}">${BADGE_LABELS[p.badge]}</div>` : '';
+  const nameHTML   = p.name2
+    ? `<em>${esc(p.name1)}</em> ${esc(p.name2)}`
+    : `<em>${esc(p.name1)}</em>`;
+  const latinHTML  = p.latin  ? `<div class="card-latin">${esc(p.latin)}</div>` : '';
+  const compHTML   = p.comp   ? `<div class="card-comp"><strong>Состав:</strong> ${esc(p.comp)}</div>` : '';
+  const unitHTML   = p.unit   ? `<span>${esc(p.unit)}</span>` : '';
+  const btnLabel   = BTN_LABELS[section] || 'В заказ';
+  const bouqClass  = isBouq ? ' card-bouq' : '';
+
+  // Photo support
+  const photos   = getPhotos();
+  const photoUrl = photos[p.id];
+  const hasPhoto = !!photoUrl;
+  const thumbInner = hasPhoto
+    ? `<img class="thumb-img" src="${photoUrl}" alt="${esc(p.name1)}" loading="lazy" />`
+    : `<div class="leaf-bg">${p.bg || p.emoji}</div>${p.emoji}`;
+
+  return `
+    <div class="card${bouqClass}" data-id="${esc(p.id)}" data-section="${esc(section)}">
+      <button class="btn-delete-card" aria-label="Удалить карточку" title="Удалить">✕</button>
+      ${badgeHTML}
+      <div class="card-thumb ${thumbClass}${hasPhoto ? ' has-photo' : ''}">
+        ${thumbInner}
+        <button class="btn-photo-card" aria-label="Изменить фото" title="Добавить / изменить фото">📷</button>
+        <button class="btn-remove-photo" aria-label="Удалить фото" title="Удалить фото">✕</button>
+      </div>
+      <div class="card-body">
+        <div class="card-name">${nameHTML}</div>
+        ${latinHTML}
+        ${compHTML}
+        <div class="card-desc">${esc(p.desc)}</div>
+        <div class="card-footer">
+          <div class="price">${esc(p.price)}${unitHTML}</div>
+          <button class="btn-add">${btnLabel}</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function buildAddCardHTML(section) {
+  return `
+    <div class="card-add-new" data-section="${section}" role="button" tabindex="0" aria-label="Добавить новую позицию">
+      <div class="plus-icon">+</div>
+      <p>Добавить позицию</p>
+    </div>`;
+}
+
+function esc(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function renderSection(section) {
+  const isBouq = section === 'bouquets';
+  const grid = document.getElementById('grid-' + section);
+  if (!grid) return;
+
+  const products = getProducts(section);
+  let html = products.map(p => buildCardHTML(p, section, isBouq)).join('');
+  html += buildAddCardHTML(section);
+  grid.innerHTML = html;
+
+  // Bind delete buttons
+  grid.querySelectorAll('.btn-delete-card').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const card = btn.closest('.card');
+      openDeleteModal(card.dataset.id, card.dataset.section, card);
+    });
+  });
+
+  // Bind photo buttons on existing cards
+  grid.querySelectorAll('.btn-photo-card').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const card = btn.closest('.card');
+      openCardPhotoInput(card.dataset.id, card.dataset.section);
+    });
+  });
+
+  // Bind remove-photo buttons
+  grid.querySelectorAll('.btn-remove-photo').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const card = btn.closest('.card');
+      deletePhoto(card.dataset.id);
+      renderSection(card.dataset.section);
+      showToast('🗑 Фото удалено');
+    });
+  });
+
+  // Bind add-new card
+  grid.querySelectorAll('.card-add-new').forEach(el => {
+    el.addEventListener('click', () => openAddModal(el.dataset.section));
+    el.addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' ') openAddModal(el.dataset.section); });
+  });
+}
+
+function renderAll() {
+  ['cut','pot','cuttings','bouquets'].forEach(renderSection);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   INTERSECTION OBSERVER — анимация появления карточек
+   ═══════════════════════════════════════════════════════════════ */
+let observer;
+function observeCards() {
+  if (observer) observer.disconnect();
+  const cards = document.querySelectorAll('.tab-panel.active .card:not(.visited), .tab-panel.active .card-add-new:not(.visited)');
+  cards.forEach((card, i) => { card.style.transitionDelay = (i * 55) + 'ms'; });
+
+  observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible','visited');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.08, rootMargin: '0px 0px -30px 0px' });
+
+  document.querySelectorAll('.tab-panel.active .card, .tab-panel.active .card-add-new').forEach(card => {
+    if (!card.classList.contains('visited')) observer.observe(card);
+    else card.classList.add('visible');
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TAB SWITCHING
+   ═══════════════════════════════════════════════════════════════ */
+const tabBtns   = document.querySelectorAll('.tab-btn');
+const tabPanels = document.querySelectorAll('.tab-panel');
+
+function switchTab(targetId) {
+  tabBtns.forEach(b => {
+    const active = b.dataset.tab === targetId;
+    b.classList.toggle('active', active);
+    b.setAttribute('aria-selected', String(active));
+  });
+  tabPanels.forEach(p => p.classList.toggle('active', p.id === 'tab-' + targetId));
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  setTimeout(observeCards, 80);
+}
+
+tabBtns.forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
+
+/* ═══════════════════════════════════════════════════════════════
+   ADMIN MODE TOGGLE
+   ═══════════════════════════════════════════════════════════════ */
+let editMode = false;
+const header      = document.getElementById('siteHeader');
+const adminToggle = document.getElementById('adminToggle');
+const adminIcon   = document.getElementById('adminIcon');
+const adminLabel  = document.getElementById('adminLabel');
+
+adminToggle.addEventListener('click', () => {
+  editMode = !editMode;
+  header.classList.toggle('edit-mode', editMode);
+  document.body.classList.toggle('edit-mode', editMode);
+  adminIcon.textContent  = editMode ? '✓' : '✏️';
+  adminLabel.textContent = editMode ? 'Готово' : 'Редактировать';
+
+  // Показать/скрыть add-new карточки (они уже в DOM)
+  document.querySelectorAll('.card-add-new').forEach(el => {
+    el.classList.toggle('visible', editMode);
+  });
+
+  if (editMode) {
+    showToast('Режим редактирования включён — нажмите ✕ на карточке чтобы удалить');
+  } else {
+    showToast('Изменения сохранены');
+  }
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   PHOTO STORAGE & UTILITIES
+   ═══════════════════════════════════════════════════════════════ */
+const LS_PHOTOS = 'fp_photos';
+
+function getPhotos() {
+  try { return JSON.parse(localStorage.getItem(LS_PHOTOS) || '{}'); }
+  catch { return {}; }
+}
+function savePhoto(id, dataUrl) {
+  const photos = getPhotos();
+  photos[id] = dataUrl;
+  try {
+    localStorage.setItem(LS_PHOTOS, JSON.stringify(photos));
+    return true;
+  } catch (e) {
+    // localStorage full
+    showToast('⚠️ Недостаточно места в хранилище — попробуйте удалить старые фото', 4000);
+    return false;
+  }
+}
+function deletePhoto(id) {
+  const photos = getPhotos();
+  delete photos[id];
+  localStorage.setItem(LS_PHOTOS, JSON.stringify(photos));
+}
+
+/** Сжать изображение через canvas, вернуть base64 JPEG */
+function compressImage(file, maxW = 900, maxH = 700, quality = 0.8) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if (w > maxW || h > maxH) {
+          const ratio = Math.min(maxW / w, maxH / h);
+          w = Math.round(w * ratio);
+          h = Math.round(h * ratio);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width  = w;
+        canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject;
+      img.src = ev.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+/* ─── Editing photo on an existing card ───────────────────────── */
+const cardPhotoInput = document.getElementById('cardPhotoInput');
+let pendingPhotoCardId      = null;
+let pendingPhotoCardSection = null;
+
+function openCardPhotoInput(id, section) {
+  pendingPhotoCardId      = id;
+  pendingPhotoCardSection = section;
+  cardPhotoInput.value    = '';   // reset so same file can be re-selected
+  cardPhotoInput.click();
+}
+
+cardPhotoInput.addEventListener('change', async () => {
+  const file = cardPhotoInput.files[0];
+  if (!file || !pendingPhotoCardId) return;
+  try {
+    showToast('⏳ Обрабатываю изображение…');
+    const dataUrl = await compressImage(file);
+    const ok = savePhoto(pendingPhotoCardId, dataUrl);
+    if (ok) {
+      renderSection(pendingPhotoCardSection);
+      showToast('✅ Фото добавлено');
+    }
+  } catch (e) {
+    showToast('❌ Не удалось загрузить изображение');
+  }
+  pendingPhotoCardId      = null;
+  pendingPhotoCardSection = null;
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   ADD MODAL
+   ═══════════════════════════════════════════════════════════════ */
+const addModal     = document.getElementById('addModal');
+const addForm      = document.getElementById('addForm');
+const afSection    = document.getElementById('af-section');
+const afEmoji      = document.getElementById('af-emoji');
+const emojiPreview = document.getElementById('af-emoji-preview');
+const afCompWrap   = document.getElementById('af-comp-wrap');
+
+function openAddModal(preselect) {
+  addModal.removeAttribute('hidden');
+  requestAnimationFrame(() => addModal.classList.add('open'));
+  if (preselect) afSection.value = preselect;
+  toggleCompField();
+  afEmoji.focus();
+}
+
+/* Photo state for add form */
+let addFormPhotoDataUrl = null;
+
+const afPhotoInput      = document.getElementById('af-photo');
+const afDropZone        = document.getElementById('af-drop-zone');
+const afPreviewWrap     = document.getElementById('af-photo-preview-wrap');
+const afPreviewImg      = document.getElementById('af-photo-preview-img');
+const afPhotoRemoveBtn  = document.getElementById('af-photo-remove');
+
+async function handleAddFormPhoto(file) {
+  if (!file || !file.type.startsWith('image/')) return;
+  try {
+    showToast('⏳ Обрабатываю изображение…');
+    const dataUrl = await compressImage(file);
+    addFormPhotoDataUrl = dataUrl;
+    afPreviewImg.src   = dataUrl;
+    afPreviewWrap.classList.add('show');
+    afDropZone.style.display = 'none';
+    showToast('✅ Фото готово к добавлению');
+  } catch (e) {
+    showToast('❌ Не удалось загрузить изображение');
+  }
+}
+
+afPhotoInput.addEventListener('change', () => {
+  handleAddFormPhoto(afPhotoInput.files[0]);
+});
+
+// Drag-and-drop
+afDropZone.addEventListener('dragover', e => { e.preventDefault(); afDropZone.classList.add('drag-over'); });
+afDropZone.addEventListener('dragleave', () => afDropZone.classList.remove('drag-over'));
+afDropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  afDropZone.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) handleAddFormPhoto(file);
+});
+
+afPhotoRemoveBtn.addEventListener('click', () => {
+  addFormPhotoDataUrl = null;
+  afPreviewImg.src    = '';
+  afPreviewWrap.classList.remove('show');
+  afDropZone.style.display = '';
+  afPhotoInput.value = '';
+});
+
+function closeAddModal() {
+  addModal.classList.remove('open');
+  setTimeout(() => addModal.setAttribute('hidden', ''), 220);
+  addForm.reset();
+  emojiPreview.textContent = '🌸';
+  // reset photo
+  addFormPhotoDataUrl = null;
+  afPreviewImg.src    = '';
+  afPreviewWrap.classList.remove('show');
+  afDropZone.style.display = '';
+  clearAddErrors();
+}
+
+document.getElementById('addModalClose').addEventListener('click', closeAddModal);
+document.getElementById('addFormCancel').addEventListener('click', closeAddModal);
+addModal.addEventListener('click', e => { if(e.target === addModal) closeAddModal(); });
+
+// Emoji live preview
+afEmoji.addEventListener('input', () => {
+  emojiPreview.textContent = afEmoji.value.trim() || '🌸';
+});
+
+// Show/hide composition field
+afSection.addEventListener('change', toggleCompField);
+function toggleCompField() {
+  const isBouq = afSection.value === 'bouquets';
+  afCompWrap.style.display = isBouq ? '' : 'none';
+}
+
+function clearAddErrors() {
+  ['af-section','af-emoji','af-name1','af-desc','af-price'].forEach(id => {
+    const el = document.getElementById(id);
+    const err = document.getElementById(id + '-err');
+    if (el) el.classList.remove('error');
+    if (err) err.classList.remove('show');
+  });
+}
+
+addForm.addEventListener('submit', e => {
+  e.preventDefault();
+  clearAddErrors();
+
+  let ok = true;
+  function req(id, msg) {
+    const el  = document.getElementById(id);
+    const err = document.getElementById(id + '-err');
+    if (!el.value.trim()) {
+      el.classList.add('error');
+      if (err) err.classList.add('show');
+      ok = false;
+    }
+  }
+
+  req('af-section');
+  req('af-emoji');
+  req('af-name1');
+  req('af-desc');
+  req('af-price');
+  if (!ok) return;
+
+  const section = afSection.value;
+  const newProduct = {
+    id:      'user-' + Date.now(),
+    section: section,
+    emoji:   document.getElementById('af-emoji').value.trim(),
+    bg:      document.getElementById('af-emoji').value.trim(),
+    badge:   document.getElementById('af-badge').value || null,
+    name1:   document.getElementById('af-name1').value.trim(),
+    name2:   document.getElementById('af-name2').value.trim(),
+    latin:   document.getElementById('af-latin').value.trim(),
+    comp:    document.getElementById('af-comp').value.trim(),
+    desc:    document.getElementById('af-desc').value.trim(),
+    price:   document.getElementById('af-price').value.trim(),
+    unit:    document.getElementById('af-unit').value.trim(),
+  };
+
+  const added = getAdded();
+  added.push(newProduct);
+  saveAdded(added);
+
+  // Save photo if provided
+  if (addFormPhotoDataUrl) {
+    savePhoto(newProduct.id, addFormPhotoDataUrl);
+  }
+
+  renderSection(section);
+  observeCards();
+
+  // Switch to the right tab
+  switchTab(section);
+
+  closeAddModal();
+  showToast('✅ Позиция добавлена в каталог');
+});
+
+// Live clear errors on input
+['af-section','af-emoji','af-name1','af-desc','af-price'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', () => {
+    el.classList.remove('error');
+    const err = document.getElementById(id + '-err');
+    if (err) err.classList.remove('show');
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   DELETE MODAL
+   ═══════════════════════════════════════════════════════════════ */
+const deleteModal  = document.getElementById('deleteModal');
+const delCardName  = document.getElementById('del-card-name');
+let pendingDelete  = null; // { id, section }
+
+function openDeleteModal(id, section, cardEl) {
+  // Get card name from DOM
+  const nameEl = cardEl.querySelector('.card-name');
+  delCardName.textContent = nameEl ? nameEl.textContent.trim() : id;
+  pendingDelete = { id, section };
+  deleteModal.removeAttribute('hidden');
+  requestAnimationFrame(() => deleteModal.classList.add('open'));
+}
+
+function closeDeleteModal() {
+  deleteModal.classList.remove('open');
+  setTimeout(() => deleteModal.setAttribute('hidden', ''), 220);
+  pendingDelete = null;
+}
+
+document.getElementById('delCancel').addEventListener('click', closeDeleteModal);
+deleteModal.addEventListener('click', e => { if (e.target === deleteModal) closeDeleteModal(); });
+
+document.getElementById('delConfirm').addEventListener('click', () => {
+  if (!pendingDelete) return;
+  const { id, section } = pendingDelete;
+  closeDeleteModal();
+
+  // Is it a default or added product?
+  const defaults = DEFAULT_PRODUCTS[section] || [];
+  const isDefault = defaults.some(p => p.id === id);
+
+  if (isDefault) {
+    const deleted = getDeleted();
+    deleted.add(id);
+    saveDeleted(deleted);
+  } else {
+    const added = getAdded().filter(p => p.id !== id);
+    saveAdded(added);
+  }
+
+  // Animate card out
+  const cardEl = document.querySelector(`.card[data-id="${id}"]`);
+  if (cardEl) {
+    cardEl.style.transition = 'opacity .3s ease, transform .3s ease';
+    cardEl.style.opacity = '0';
+    cardEl.style.transform = 'scale(.9)';
+    setTimeout(() => renderSection(section), 320);
+  } else {
+    renderSection(section);
+  }
+
+  showToast('🗑 Позиция удалена');
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   RESTORE (восстановление всех удалённых — кнопка не нужна,
+   можно вызвать из консоли: restoreAll())
+   ═══════════════════════════════════════════════════════════════ */
+window.restoreAll = function(clearPhotos = false) {
+  localStorage.removeItem(LS_DELETED);
+  localStorage.removeItem(LS_ADDED);
+  if (clearPhotos) localStorage.removeItem(LS_PHOTOS);
+  renderAll();
+  observeCards();
+  showToast(clearPhotos
+    ? '♻ Каталог и все фото восстановлены до исходного состояния'
+    : '♻ Каталог восстановлен (фото сохранены). Для сброса фото: restoreAll(true)'
+  );
+};
+
+/* ═══════════════════════════════════════════════════════════════
+   SCROLL-TO-TOP
+   ═══════════════════════════════════════════════════════════════ */
+const scrollTopBtn = document.getElementById('scrollTop');
+window.addEventListener('scroll', () => {
+  scrollTopBtn.classList.toggle('show', window.scrollY > 320);
+}, { passive: true });
+scrollTopBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+
+/* ═══════════════════════════════════════════════════════════════
+   CONTACT FORM VALIDATION
+   ═══════════════════════════════════════════════════════════════ */
+const contactForm = document.getElementById('contactForm');
+const successMsg  = document.getElementById('successMsg');
+
+function showErr(el, errEl, show) {
+  el.classList.toggle('error', show);
+  errEl.classList.toggle('show', show);
+}
+function validPhone(v) { return /^[\+]?[\d\s\-\(\)]{7,18}$/.test(v.trim()); }
+function validEmail(v) { return v==='' || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()); }
+
+contactForm.addEventListener('submit', async e => {
+  e.preventDefault();
+  const name  = document.getElementById('fname'),  nameErr  = document.getElementById('fname-err');
+  const phone = document.getElementById('fphone'), phoneErr = document.getElementById('fphone-err');
+  const email = document.getElementById('femail'), emailErr = document.getElementById('femail-err');
+  const msg   = document.getElementById('fmsg'),   msgErr   = document.getElementById('fmsg-err');
+  const btn   = document.getElementById('btnSubmit');
+
+  let valid = true;
+  if (!name.value.trim())     { showErr(name,  nameErr,  true);  valid=false; } else showErr(name,  nameErr,  false);
+  if (!validPhone(phone.value)){ showErr(phone, phoneErr, true); valid=false; } else showErr(phone, phoneErr, false);
+  if (!validEmail(email.value)){ showErr(email, emailErr, true); valid=false; } else showErr(email, emailErr, false);
+  if (!msg.value.trim())      { showErr(msg,   msgErr,   true);  valid=false; } else showErr(msg,   msgErr,   false);
+  if (!valid) return;
+
+  btn.disabled = true;
+  btn.textContent = 'Отправляем…';
+
+  try {
+    const formData = new FormData(contactForm);
+    const res = await fetch('https://api.web3forms.com/submit', {
+      method: 'POST',
+      body: formData
+    });
+    const data = await res.json();
+    if (data.success) {
+      contactForm.style.display = 'none';
+      successMsg.classList.add('show');
+    } else {
+      btn.disabled = false;
+      btn.textContent = 'Отправить сообщение';
+      showToast('Не удалось отправить. Попробуйте ещё раз.');
+    }
+  } catch {
+    btn.disabled = false;
+    btn.textContent = 'Отправить сообщение';
+    showToast('Ошибка сети. Проверьте подключение и попробуйте снова.');
+  }
+});
+
+['fname','fphone','femail','fmsg'].forEach(id => {
+  const el = document.getElementById(id);
+  el.addEventListener('input', () => {
+    el.classList.remove('error');
+    document.getElementById(id+'-err').classList.remove('show');
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   TOAST
+   ═══════════════════════════════════════════════════════════════ */
+const toastEl = document.getElementById('toast');
+let toastTimer;
+function showToast(msg, dur=3000) {
+  clearTimeout(toastTimer);
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  toastTimer = setTimeout(() => toastEl.classList.remove('show'), dur);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   INIT
+   ═══════════════════════════════════════════════════════════════ */
+renderAll();
+observeCards();
+</script>
+</body>
+</html>
