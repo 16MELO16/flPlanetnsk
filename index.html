@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Цветочная планета — Ботанический каталог</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌸</text></svg>" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&display=swap" rel="stylesheet" />
@@ -142,10 +143,7 @@
       line-height: 1.4;
     }
 
-    /* Admin toggle button — hidden, activated via Ctrl+Shift+E */
-    .btn-edit-toggle {
-      display: none !important;
-    }
+    /* Admin toggle button — hidden, activated via Cmd+Shift+E */
     .btn-edit-toggle {
       display: flex;
       align-items: center;
@@ -804,7 +802,7 @@
       </a>
       <div class="header-right">
         <div class="header-badge">Срезка · Горшечные<br>Черенки · Букеты</div>
-        <button class="btn-edit-toggle" id="adminToggle" title="Управление каталогом">
+        <button class="btn-edit-toggle" id="adminToggle" title="Управление каталогом" style="display:none" aria-hidden="true">
           <span id="adminIcon">✏️</span>
           <span id="adminLabel">Редактировать</span>
         </button>
@@ -1347,7 +1345,7 @@ function toggleEditMode() {
 adminToggle.addEventListener('click', toggleEditMode);
 
 document.addEventListener('keydown', (e) => {
-  if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'E') {
+  if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.code === 'KeyE') {
     e.preventDefault();
     toggleEditMode();
   }
