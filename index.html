@@ -1231,7 +1231,7 @@ function esc(str) {
     .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
-function renderSection(section) {
+function renderSection(section, instant = false) {
   const isBouq = section === 'bouquets';
   const grid = document.getElementById('grid-' + section);
   if (!grid) return;
@@ -1265,7 +1265,7 @@ function renderSection(section) {
       e.stopPropagation();
       const card = btn.closest('.card');
       deletePhoto(card.dataset.id);
-      renderSection(card.dataset.section);
+      renderSection(card.dataset.section, true);
       showToast('🗑 Фото удалено');
     });
   });
@@ -1275,6 +1275,11 @@ function renderSection(section) {
     el.addEventListener('click', () => openAddModal(el.dataset.section));
     el.addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' ') openAddModal(el.dataset.section); });
   });
+
+  // On re-renders (after mutations), make cards visible immediately
+  if (instant) {
+    grid.querySelectorAll('.card, .card-add-new').forEach(c => c.classList.add('visible', 'visited'));
+  }
 }
 
 function renderAll() {
@@ -1435,7 +1440,7 @@ cardPhotoInput.addEventListener('change', async () => {
     const dataUrl = await compressImage(file);
     const ok = savePhoto(pendingPhotoCardId, dataUrl);
     if (ok) {
-      renderSection(pendingPhotoCardSection);
+      renderSection(pendingPhotoCardSection, true);
       showToast('✅ Фото добавлено');
     }
   } catch (e) {
@@ -1594,8 +1599,7 @@ addForm.addEventListener('submit', e => {
     savePhoto(newProduct.id, addFormPhotoDataUrl);
   }
 
-  renderSection(section);
-  observeCards();
+  renderSection(section, true);
 
   // Switch to the right tab
   switchTab(section);
@@ -1663,9 +1667,9 @@ document.getElementById('delConfirm').addEventListener('click', () => {
     cardEl.style.transition = 'opacity .3s ease, transform .3s ease';
     cardEl.style.opacity = '0';
     cardEl.style.transform = 'scale(.9)';
-    setTimeout(() => renderSection(section), 320);
+    setTimeout(() => renderSection(section, true), 320);
   } else {
-    renderSection(section);
+    renderSection(section, true);
   }
 
   showToast('🗑 Позиция удалена');
