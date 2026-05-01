@@ -1567,13 +1567,138 @@ function saveAdded(arr) {
   localStorage.setItem(LS_ADDED, JSON.stringify(arr));
 }
 
-/* Получить все продукты для секции (дефолтные - удалённые + добавленные) */
+/* ═══════════════════════════════════════════════════════════════
+   КАТАЛОГ — кэш в памяти; источник истины — Supabase (если настроен).
+   Если Supabase не настроен или БД недоступна — fallback на DEFAULT_PRODUCTS
+   + localStorage (старое поведение).
+   ═══════════════════════════════════════════════════════════════ */
+const useDb = !!supabase;
+let catalogLoaded = false;
+let PRODUCTS_CACHE = { cut: [], pot: [], cuttings: [], bouquets: [] };
+
+/* Маппинг между схемой БД и форматом, который ожидает рендер */
+function dbRowToJs(row) {
+  return {
+    id:    row.id,
+    section: row.section,
+    emoji: row.emoji || '',
+    bg:    row.bg || '',
+    badge: row.badge || null,
+    name1: row.name1 || '',
+    name2: row.name2 || '',
+    latin: row.latin || '',
+    desc:  row.description || '',
+    comp:  row.comp || '',
+    price: row.price || '',
+    unit:  row.unit || '',
+  };
+}
+function jsToDbRow(p) {
+  return {
+    id:    p.id,
+    section: p.section,
+    emoji: p.emoji || '',
+    bg:    p.bg || '',
+    badge: p.badge || null,
+    name1: p.name1 || '',
+    name2: p.name2 || '',
+    latin: p.latin || '',
+    description: p.desc || '',
+    comp:  p.comp || '',
+    price: p.price || '',
+    unit:  p.unit || '',
+  };
+}
+
+/* Один fetch при старте страницы. */
+async function loadCatalog() {
+  if (!useDb) return;
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .order('section')
+      .order('sort_order');
+    if (error) throw error;
+    const cache = { cut: [], pot: [], cuttings: [], bouquets: [] };
+    for (const row of data) {
+      const p = dbRowToJs(row);
+      if (cache[p.section]) cache[p.section].push(p);
+    }
+    PRODUCTS_CACHE = cache;
+    catalogLoaded = true;
+  } catch (e) {
+    console.warn('[Цветочная планета] Каталог из БД не загружен. ' +
+      'Возможно, миграция SQL ещё не выполнена в Supabase. ' +
+      'Сайт работает на встроенном каталоге (DEFAULT_PRODUCTS + localStorage).', e);
+    catalogLoaded = false;
+  }
+}
+
+/* Получить продукты секции — из кэша БД или из fallback-пути */
 function getProducts(section) {
+  if (catalogLoaded) {
+    return PRODUCTS_CACHE[section] || [];
+  }
+  // fallback: дефолты минус удалённые + локально добавленные
   const deleted = getDeleted();
   const added   = getAdded();
   const defaults = (DEFAULT_PRODUCTS[section] || []).filter(p => !deleted.has(p.id));
   const extra    = added.filter(p => p.section === section);
   return [...defaults, ...extra];
+}
+
+/* Добавить товар в каталог (БД или localStorage) */
+async function addProductToCatalog(p) {
+  if (useDb && catalogLoaded) {
+    const { data, error } = await supabase
+      .from('products')
+      .insert(jsToDbRow(p))
+      .select()
+      .single();
+    if (error) {
+      showToast('Не удалось добавить: ' + (error.message || 'ошибка БД'), 4000);
+      return null;
+    }
+    const created = dbRowToJs(data);
+    if (!PRODUCTS_CACHE[created.section]) PRODUCTS_CACHE[created.section] = [];
+    PRODUCTS_CACHE[created.section].push(created);
+    return created;
+  }
+  // fallback
+  const added = getAdded();
+  added.push(p);
+  saveAdded(added);
+  return p;
+}
+
+/* Удалить товар из каталога (БД или localStorage) */
+async function deleteProductFromCatalog(id, section) {
+  if (useDb && catalogLoaded) {
+    const { error } = await supabase
+      .from('products')
+      .delete()
+      .eq('id', id);
+    if (error) {
+      showToast('Не удалось удалить: ' + (error.message || 'ошибка БД'), 4000);
+      return false;
+    }
+    if (PRODUCTS_CACHE[section]) {
+      PRODUCTS_CACHE[section] = PRODUCTS_CACHE[section].filter(p => p.id !== id);
+    }
+    return true;
+  }
+  // fallback: дефолтные мечем в fp_deleted, добавленные удаляем из fp_added
+  const isDefault = (DEFAULT_PRODUCTS[section] || []).some(p => p.id === id);
+  if (isDefault) {
+    const deleted = getDeleted();
+    deleted.add(id);
+    saveDeleted(deleted);
+  } else {
+    const added = getAdded().filter(p => p.id !== id);
+    saveAdded(added);
+  }
+  return true;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -2101,7 +2226,7 @@ function clearAddErrors() {
   });
 }
 
-addForm.addEventListener('submit', e => {
+addForm.addEventListener('submit', async e => {
   e.preventDefault();
   clearAddErrors();
 
@@ -2139,20 +2264,23 @@ addForm.addEventListener('submit', e => {
     unit:    document.getElementById('af-unit').value.trim(),
   };
 
-  const added = getAdded();
-  added.push(newProduct);
-  saveAdded(added);
+  // Блокируем сабмит, пока идёт запись в БД
+  const submitBtn = addForm.querySelector('button[type="submit"]');
+  if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Сохраняю…'; }
 
-  // Save photo if provided
+  const saved = await addProductToCatalog(newProduct);
+
+  if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Добавить в каталог'; }
+
+  if (!saved) return; // ошибка уже показана в toast
+
+  // Save photo if provided (фото пока локально, в следующей итерации перенесём в Storage)
   if (addFormPhotoDataUrl) {
-    savePhoto(newProduct.id, addFormPhotoDataUrl);
+    savePhoto(saved.id, addFormPhotoDataUrl);
   }
 
   renderSection(section, true);
-
-  // Switch to the right tab
   switchTab(section);
-
   closeAddModal();
   showToast('✅ Позиция добавлена в каталог');
 });
@@ -2192,25 +2320,15 @@ function closeDeleteModal() {
 document.getElementById('delCancel').addEventListener('click', closeDeleteModal);
 deleteModal.addEventListener('click', e => { if (e.target === deleteModal) closeDeleteModal(); });
 
-document.getElementById('delConfirm').addEventListener('click', () => {
+document.getElementById('delConfirm').addEventListener('click', async () => {
   if (!pendingDelete) return;
   const { id, section } = pendingDelete;
   closeDeleteModal();
 
-  // Is it a default or added product?
-  const defaults = DEFAULT_PRODUCTS[section] || [];
-  const isDefault = defaults.some(p => p.id === id);
+  const ok = await deleteProductFromCatalog(id, section);
+  if (!ok) return; // ошибка уже показана в toast
 
-  if (isDefault) {
-    const deleted = getDeleted();
-    deleted.add(id);
-    saveDeleted(deleted);
-  } else {
-    const added = getAdded().filter(p => p.id !== id);
-    saveAdded(added);
-  }
-
-  // Animate card out
+  // Анимация исчезновения карточки
   const cardEl = document.querySelector(`.card[data-id="${id}"]`);
   if (cardEl) {
     cardEl.style.transition = 'opacity .3s ease, transform .3s ease';
@@ -2570,9 +2688,16 @@ document.getElementById('checkoutForm').addEventListener('submit', async e => {
 /* ═══════════════════════════════════════════════════════════════
    INIT
    ═══════════════════════════════════════════════════════════════ */
-renderAll();
-updateCartBadge();
-observeCards();
+(async function init() {
+  // Сначала тянем каталог из БД (если Supabase настроен).
+  // Если БД недоступна или таблица ещё не создана — функция тихо вернётся,
+  // и getProducts() сам провалится в fallback на DEFAULT_PRODUCTS+localStorage.
+  await loadCatalog();
+
+  renderAll();
+  updateCartBadge();
+  observeCards();
+})();
 </script>
 </body>
 </html>
