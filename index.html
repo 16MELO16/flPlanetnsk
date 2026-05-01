@@ -20,6 +20,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&display=swap" rel="stylesheet" />
 
+  <!-- Supabase JS-клиент (для авторизации админа). См. SUPABASE_SETUP.md -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+
   <style>
     /* ─── CSS VARIABLES ─────────────────────────────────────────── */
     :root {
@@ -154,7 +157,7 @@
       line-height: 1.4;
     }
 
-    /* Admin toggle button — hidden, activated via Cmd+Shift+E */
+    /* Admin toggle button — реальная авторизация через Supabase */
     .btn-edit-toggle {
       display: flex;
       align-items: center;
@@ -179,6 +182,37 @@
       border-color: var(--rose);
     }
     header.edit-mode .btn-edit-toggle:hover { background: #b8734f; }
+
+    /* Кнопка выхода (sign-out) — появляется рядом с edit-toggle, когда админ залогинен */
+    .btn-signout {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      width: 34px; height: 34px;
+      padding: 0;
+      border-radius: 50%;
+      border: 1.5px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-size: 14px;
+      cursor: pointer;
+      transition: background var(--tr), color var(--tr), border-color var(--tr);
+    }
+    .btn-signout:hover { border-color: var(--danger); color: var(--danger); }
+    body.is-admin .btn-signout { display: inline-flex; }
+
+    /* Сообщение об ошибке в модалке логина */
+    .login-error {
+      background: rgba(192,57,43,.08);
+      color: var(--danger);
+      border: 1px solid rgba(192,57,43,.2);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: .85rem;
+      margin: 4px 0 8px;
+    }
+    .login-error[hidden] { display: none; }
+    .btn-primary[disabled] { opacity: .55; cursor: wait; }
 
     /* ─── TAB NAVIGATION ────────────────────────────────────────── */
     .tabs-nav {
@@ -1076,10 +1110,11 @@
           🛒 Корзина
           <span class="cart-badge" id="cartBadge" hidden>0</span>
         </button>
-        <button class="btn-edit-toggle" id="adminToggle" title="Управление каталогом" style="display:none" aria-hidden="true">
-          <span id="adminIcon">✏️</span>
-          <span id="adminLabel">Редактировать</span>
+        <button class="btn-edit-toggle" id="adminToggle" title="Управление каталогом">
+          <span id="adminIcon">🔒</span>
+          <span id="adminLabel">Войти</span>
         </button>
+        <button class="btn-signout" id="adminSignout" title="Выйти из админки" aria-label="Выйти">⎋</button>
       </div>
     </div>
     <nav class="tabs-nav" role="tablist">
@@ -1400,6 +1435,35 @@
 
 </aside>
 
+<!-- ═══════════════════ MODAL: ВХОД АДМИНА ═══════════════════════ -->
+<div class="modal-overlay" id="loginModal" hidden>
+  <div class="modal-box modal-sm">
+    <button class="modal-close" id="loginModalClose" aria-label="Закрыть">✕</button>
+    <div class="modal-title">Вход в панель</div>
+    <div class="modal-sub">Только для администраторов «Цветочной планеты»</div>
+
+    <form id="loginForm" novalidate>
+      <div class="field form-full">
+        <label for="login-email">Email</label>
+        <input type="email" id="login-email" autocomplete="email" placeholder="you@example.com" />
+        <span class="err-msg" id="login-email-err">Укажите email</span>
+      </div>
+      <div class="field form-full">
+        <label for="login-password">Пароль</label>
+        <input type="password" id="login-password" autocomplete="current-password" placeholder="••••••••" />
+        <span class="err-msg" id="login-password-err">Введите пароль</span>
+      </div>
+
+      <div class="login-error" id="login-error" hidden></div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" id="loginCancel">Отмена</button>
+        <button type="submit" class="btn-primary" id="loginSubmit">Войти</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
@@ -1407,6 +1471,31 @@
 <input type="file" id="cardPhotoInput" accept="image/*" style="display:none" />
 
 <script>
+/* ═══════════════════════════════════════════════════════════════
+   SUPABASE_CONFIG — впишите сюда значения из вашего проекта
+   (Project Settings → API). Подробности — в SUPABASE_SETUP.md
+   ═══════════════════════════════════════════════════════════════ */
+const SUPABASE_CONFIG = {
+  url:     'https://xonizpnbqcgusjrlahue.supabase.co',
+  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhvbml6cG5icWNndXNqcmxhaHVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2Mjk2MTksImV4cCI6MjA5MzIwNTYxOX0.OjwUGVtrd_GLPUi6JDqSNUgr4MM6wrVTno-ycokK11M',
+};
+
+/* Инициализируем клиент. Если конфиг ещё не заполнен — клиент будет null,
+   и админ-кнопка просто не появится (сайт продолжит работать в обычном режиме). */
+const supabase = (() => {
+  if (
+    !window.supabase ||
+    SUPABASE_CONFIG.url === 'YOUR_SUPABASE_URL' ||
+    SUPABASE_CONFIG.anonKey === 'YOUR_SUPABASE_ANON_KEY'
+  ) {
+    console.info('[Цветочная планета] Supabase не настроен — работаем в режиме без авторизации.');
+    return null;
+  }
+  return window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey, {
+    auth: { persistSession: true, autoRefreshToken: true },
+  });
+})();
+
 /* ═══════════════════════════════════════════════════════════════
    DATA — все продукты каталога
    ═══════════════════════════════════════════════════════════════ */
@@ -1668,41 +1757,163 @@ function switchTab(targetId) {
 tabBtns.forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
 
 /* ═══════════════════════════════════════════════════════════════
-   ADMIN MODE TOGGLE
+   ADMIN AUTH & MODE TOGGLE (через Supabase)
+
+   Логика:
+     - не авторизован → клик по кнопке открывает модалку логина;
+     - авторизован    → клик переключает режим редактирования;
+     - sign-out       → выход из сессии Supabase, edit-mode снимается.
    ═══════════════════════════════════════════════════════════════ */
 let editMode = false;
-const header      = document.getElementById('siteHeader');
-const adminToggle = document.getElementById('adminToggle');
-const adminIcon   = document.getElementById('adminIcon');
-const adminLabel  = document.getElementById('adminLabel');
+let isAdmin  = false;   // обновляется по сессии Supabase
 
-function toggleEditMode() {
-  editMode = !editMode;
-  header.classList.toggle('edit-mode', editMode);
-  document.body.classList.toggle('edit-mode', editMode);
+const header        = document.getElementById('siteHeader');
+const adminToggle   = document.getElementById('adminToggle');
+const adminIcon     = document.getElementById('adminIcon');
+const adminLabel    = document.getElementById('adminLabel');
+const adminSignout  = document.getElementById('adminSignout');
+
+const loginModal      = document.getElementById('loginModal');
+const loginForm       = document.getElementById('loginForm');
+const loginEmail      = document.getElementById('login-email');
+const loginPassword   = document.getElementById('login-password');
+const loginEmailErr   = document.getElementById('login-email-err');
+const loginPwdErr     = document.getElementById('login-password-err');
+const loginErrorBox   = document.getElementById('login-error');
+const loginSubmitBtn  = document.getElementById('loginSubmit');
+const loginCancelBtn  = document.getElementById('loginCancel');
+const loginCloseBtn   = document.getElementById('loginModalClose');
+
+/* ─── UI: видимость edit-mode и подписей ────────────────────── */
+function applyAdminUI() {
+  document.body.classList.toggle('is-admin', isAdmin);
+
+  if (!isAdmin) {
+    // Снимаем edit-mode, если вышли
+    if (editMode) setEditMode(false, /*silent*/ true);
+    adminIcon.textContent  = '🔒';
+    adminLabel.textContent = 'Войти';
+    return;
+  }
+  // Авторизован — показываем нужное состояние
   adminIcon.textContent  = editMode ? '✓' : '✏️';
   adminLabel.textContent = editMode ? 'Готово' : 'Редактировать';
+}
 
-  // Показать/скрыть add-new карточки (они уже в DOM)
+function setEditMode(on, silent = false) {
+  if (!isAdmin && on) return;          // защита: без auth включить нельзя
+  editMode = on;
+  header.classList.toggle('edit-mode', editMode);
+  document.body.classList.toggle('edit-mode', editMode);
   document.querySelectorAll('.card-add-new').forEach(el => {
     el.classList.toggle('visible', editMode);
   });
-
-  if (editMode) {
-    showToast('Режим редактирования включён — нажмите ✕ на карточке чтобы удалить');
-  } else {
-    showToast('Изменения сохранены');
-  }
+  applyAdminUI();
+  if (silent) return;
+  showToast(editMode
+    ? 'Режим редактирования включён — нажмите ✕ на карточке чтобы удалить'
+    : 'Изменения сохранены');
 }
 
-adminToggle.addEventListener('click', toggleEditMode);
+/* ─── Модалка логина ─────────────────────────────────────────── */
+function openLoginModal() {
+  loginErrorBox.hidden = true;
+  loginEmailErr.classList.remove('show');
+  loginPwdErr.classList.remove('show');
+  loginEmail.classList.remove('error');
+  loginPassword.classList.remove('error');
+  loginModal.removeAttribute('hidden');
+  // даём браузеру отрисовать элемент, потом включаем .open для анимации
+  requestAnimationFrame(() => loginModal.classList.add('open'));
+  setTimeout(() => loginEmail.focus(), 50);
+}
+function closeLoginModal() {
+  loginModal.classList.remove('open');
+  // прячем после завершения CSS-анимации (.22s)
+  setTimeout(() => { loginModal.hidden = true; }, 240);
+  loginForm.reset();
+}
 
-document.addEventListener('keydown', (e) => {
-  if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.code === 'KeyE') {
-    e.preventDefault();
-    toggleEditMode();
+loginCancelBtn.addEventListener('click', closeLoginModal);
+loginCloseBtn.addEventListener('click', closeLoginModal);
+loginModal.addEventListener('click', (e) => {
+  if (e.target === loginModal) closeLoginModal();
+});
+
+loginForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  loginErrorBox.hidden = true;
+
+  const email = loginEmail.value.trim();
+  const pwd   = loginPassword.value;
+  let bad = false;
+  if (!email || !/^\S+@\S+\.\S+$/.test(email)) { loginEmail.classList.add('error');    loginEmailErr.classList.add('show'); bad = true; }
+  else                                          { loginEmail.classList.remove('error'); loginEmailErr.classList.remove('show'); }
+  if (!pwd)                                     { loginPassword.classList.add('error'); loginPwdErr.classList.add('show');   bad = true; }
+  else                                          { loginPassword.classList.remove('error'); loginPwdErr.classList.remove('show'); }
+  if (bad) return;
+
+  if (!supabase) {
+    loginErrorBox.textContent = 'Авторизация не настроена. См. SUPABASE_SETUP.md';
+    loginErrorBox.hidden = false;
+    return;
+  }
+
+  loginSubmitBtn.disabled = true;
+  loginSubmitBtn.textContent = 'Вход…';
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password: pwd });
+    if (error) {
+      loginErrorBox.textContent = error.message === 'Invalid login credentials'
+        ? 'Неверный email или пароль'
+        : ('Ошибка входа: ' + error.message);
+      loginErrorBox.hidden = false;
+      return;
+    }
+    // onAuthStateChange сам обновит isAdmin/UI; закрываем модалку
+    closeLoginModal();
+    showToast('Добро пожаловать, ' + (data.user.email || 'админ'));
+  } catch (err) {
+    loginErrorBox.textContent = 'Сеть недоступна. Попробуйте ещё раз.';
+    loginErrorBox.hidden = false;
+  } finally {
+    loginSubmitBtn.disabled = false;
+    loginSubmitBtn.textContent = 'Войти';
   }
 });
+
+/* ─── Клик по кнопке: войти или переключить edit-mode ───────── */
+adminToggle.addEventListener('click', () => {
+  if (!isAdmin) { openLoginModal(); return; }
+  setEditMode(!editMode);
+});
+
+/* ─── Sign-out ──────────────────────────────────────────────── */
+adminSignout.addEventListener('click', async () => {
+  if (!supabase) return;
+  await supabase.auth.signOut();
+  showToast('Вы вышли из админки');
+});
+
+/* ─── Esc закрывает модалку логина ──────────────────────────── */
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !loginModal.hidden) closeLoginModal();
+});
+
+/* ─── Подписка на изменения сессии + первичная проверка ─────── */
+if (supabase) {
+  supabase.auth.getSession().then(({ data }) => {
+    isAdmin = !!data.session;
+    applyAdminUI();
+  });
+  supabase.auth.onAuthStateChange((_event, session) => {
+    isAdmin = !!session;
+    applyAdminUI();
+  });
+} else {
+  // Supabase не настроен — кнопка просто будет вести в «Войти», но логин отдаст ошибку.
+  applyAdminUI();
+}
 
 /* ═══════════════════════════════════════════════════════════════
    PHOTO STORAGE & UTILITIES
