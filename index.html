@@ -1088,6 +1088,232 @@
     .cart-checkout-success .s-icon { font-size: 2.8rem; margin-bottom: 10px; }
     .cart-checkout-success h4 { font-family: var(--font-head); font-size: 1.3rem; color: var(--emerald); margin-bottom: 8px; }
     .cart-checkout-success p { font-size: .9rem; color: var(--muted); }
+
+    /* ─── ADMIN TAB & ORDERS PANEL ──────────────────────────────── */
+    /* Вкладка «Заказы» по умолчанию скрыта; видна только когда body.is-admin */
+    .tab-btn.tab-admin { display: none; }
+    body.is-admin .tab-btn.tab-admin { display: inline-flex; align-items: center; gap: 6px; }
+    .tab-panel.tab-admin { display: none; }
+    body.is-admin .tab-panel.tab-admin.active { display: block; }
+
+    .orders-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 20px; height: 20px;
+      padding: 0 6px;
+      border-radius: 10px;
+      background: var(--rose);
+      color: #fff;
+      font-size: .68rem;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+    .orders-badge[hidden] { display: none; }
+
+    .orders-toolbar {
+      max-width: 1180px;
+      margin: 0 auto 22px;
+      padding: 0 22px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .orders-filter { display: flex; flex-wrap: wrap; gap: 8px; }
+    .filter-chip {
+      padding: 7px 14px;
+      border-radius: 20px;
+      border: 1.5px solid var(--border);
+      background: var(--card);
+      color: var(--muted);
+      font-family: var(--font-body);
+      font-size: .85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: border-color var(--tr), color var(--tr), background var(--tr);
+    }
+    .filter-chip:hover { border-color: var(--emerald); color: var(--emerald); }
+    .filter-chip.active {
+      background: var(--emerald);
+      color: #fff;
+      border-color: var(--emerald);
+    }
+    .btn-refresh { padding: 7px 16px; font-size: .85rem; }
+
+    .orders-list {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 0 22px 60px;
+      display: grid;
+      gap: 18px;
+    }
+    .orders-empty {
+      text-align: center;
+      padding: 80px 20px;
+      color: var(--muted);
+    }
+    .orders-empty-icon { font-size: 3rem; margin-bottom: 12px; }
+    .orders-empty p { font-size: 1rem; font-style: italic; }
+
+    .order-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 22px 26px;
+      display: grid;
+      gap: 14px;
+      transition: box-shadow var(--tr);
+    }
+    .order-card:hover { box-shadow: var(--shadow-hover); }
+    .order-head {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 16px;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .order-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .order-id {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: .72rem;
+      color: var(--muted);
+      letter-spacing: .04em;
+    }
+    .order-date {
+      font-family: var(--font-head);
+      font-size: 1rem;
+      color: var(--chocolate);
+    }
+    .order-status-wrap { display: flex; align-items: center; gap: 8px; }
+    .order-status-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .order-status-dot.s-new        { background: #2980b9; }
+    .order-status-dot.s-in_progress{ background: #d4a017; }
+    .order-status-dot.s-ready      { background: var(--emerald); }
+    .order-status-dot.s-delivered  { background: #555; }
+    .order-status-dot.s-cancelled  { background: var(--danger); }
+    .order-status-select {
+      font-family: var(--font-body);
+      font-size: .88rem;
+      padding: 6px 10px;
+      border-radius: 8px;
+      border: 1.5px solid var(--border);
+      background: var(--card);
+      color: var(--chocolate);
+      cursor: pointer;
+      transition: border-color var(--tr);
+    }
+    .order-status-select:hover, .order-status-select:focus {
+      border-color: var(--emerald);
+      outline: none;
+    }
+
+    .order-body { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    @media (max-width: 720px) { .order-body { grid-template-columns: 1fr; } }
+
+    .order-customer { display: grid; gap: 4px; }
+    .order-customer-row { font-size: .92rem; }
+    .order-customer-row strong { color: var(--chocolate); margin-right: 6px; }
+    .order-customer-row a {
+      color: var(--emerald);
+      text-decoration: none;
+      border-bottom: 1px solid transparent;
+      transition: border-color var(--tr);
+    }
+    .order-customer-row a:hover { border-color: var(--emerald); }
+    .order-comment {
+      font-style: italic;
+      color: var(--muted);
+      font-size: .88rem;
+      padding-top: 6px;
+      border-top: 1px dotted var(--border);
+      margin-top: 4px;
+    }
+
+    .order-items {
+      background: var(--bg);
+      border-radius: 10px;
+      padding: 12px 14px;
+    }
+    .order-item {
+      display: flex;
+      gap: 10px;
+      align-items: baseline;
+      justify-content: space-between;
+      padding: 5px 0;
+      font-size: .9rem;
+      border-bottom: 1px dotted var(--border);
+    }
+    .order-item:last-child { border-bottom: none; }
+    .order-item-name { flex: 1; }
+    .order-item-qty { color: var(--muted); margin: 0 8px; font-size: .82rem; }
+    .order-item-sum { font-weight: 600; color: var(--chocolate); white-space: nowrap; }
+
+    .order-total-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1.5px solid var(--border);
+    }
+    .order-total-label { font-size: .82rem; color: var(--muted); }
+    .order-total-sum {
+      font-family: var(--font-head);
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--emerald);
+    }
+    .order-total-sum.approx::after { content: '*'; }
+    .order-approx-note { font-size: .72rem; color: var(--muted); font-style: italic; margin-top: 4px; }
+
+    .order-notes-wrap { display: grid; gap: 6px; }
+    .order-notes-label { font-size: .76rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+    .order-notes {
+      width: 100%;
+      min-height: 50px;
+      font-family: var(--font-body);
+      font-size: .9rem;
+      padding: 9px 12px;
+      border-radius: 8px;
+      border: 1.5px solid var(--border);
+      background: var(--card);
+      color: var(--chocolate);
+      resize: vertical;
+      outline: none;
+      transition: border-color var(--tr);
+    }
+    .order-notes:focus { border-color: var(--emerald); }
+
+    .order-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      padding-top: 6px;
+    }
+    .order-delete-btn {
+      padding: 6px 14px;
+      border-radius: 16px;
+      border: 1.5px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-family: var(--font-body);
+      font-size: .82rem;
+      cursor: pointer;
+      transition: border-color var(--tr), color var(--tr);
+    }
+    .order-delete-btn:hover { border-color: var(--danger); color: var(--danger); }
   </style>
 </head>
 <body>
@@ -1123,6 +1349,7 @@
       <button class="tab-btn" role="tab" data-tab="cuttings">🌿 Черенки и саженцы</button>
       <button class="tab-btn" role="tab" data-tab="bouquets">💐 Букеты и композиции</button>
       <button class="tab-btn" role="tab" data-tab="contacts">📞 Контакты</button>
+      <button class="tab-btn tab-admin" role="tab" data-tab="orders">📋 Заказы <span class="orders-badge" id="ordersBadge" hidden>0</span></button>
     </nav>
   </div>
 </header>
@@ -1170,6 +1397,33 @@
       <div class="divider"></div>
     </div>
     <div class="grid-2" id="grid-bouquets"></div>
+  </section>
+
+  <!-- ═══════════════ TAB: ЗАКАЗЫ (только для админа) ════════ -->
+  <section class="tab-panel tab-admin" id="tab-orders" role="tabpanel">
+    <div class="section-hero">
+      <span class="section-tag">Админка</span>
+      <h1 class="section-title">Заказы <em>клиентов</em></h1>
+      <p class="section-desc">Все заявки из корзины — статусы, контакты, суммы</p>
+      <div class="divider"></div>
+    </div>
+    <div class="orders-toolbar">
+      <div class="orders-filter" id="ordersFilter">
+        <button class="filter-chip active" data-status="all">Все</button>
+        <button class="filter-chip" data-status="new">🆕 Новые</button>
+        <button class="filter-chip" data-status="in_progress">⏳ В работе</button>
+        <button class="filter-chip" data-status="ready">✅ Готовы</button>
+        <button class="filter-chip" data-status="delivered">📦 Доставлены</button>
+        <button class="filter-chip" data-status="cancelled">❌ Отменены</button>
+      </div>
+      <button class="btn-secondary btn-refresh" id="ordersRefresh" title="Обновить список">↻ Обновить</button>
+    </div>
+    <div class="orders-list" id="ordersList">
+      <div class="orders-empty" id="ordersEmpty" hidden>
+        <div class="orders-empty-icon">📭</div>
+        <p>Здесь появятся заказы клиентов</p>
+      </div>
+    </div>
   </section>
 
   <!-- ═══════════════ TAB: КОНТАКТЫ ═══════════════════════════ -->
@@ -1702,6 +1956,292 @@ async function deleteProductFromCatalog(id, section) {
 }
 
 /* ═══════════════════════════════════════════════════════════════
+   ЗАКАЗЫ — Supabase orders. Доступно только админу.
+   Клиенты пишут (insert от anon), читают/меняют только authenticated.
+   ═══════════════════════════════════════════════════════════════ */
+const ORDER_STATUS_LABELS = {
+  new:         '🆕 Новый',
+  in_progress: '⏳ В работе',
+  ready:       '✅ Готов к выдаче',
+  delivered:   '📦 Доставлен',
+  cancelled:   '❌ Отменён',
+};
+
+let ORDERS_CACHE = [];          // массив заказов из БД
+let ordersFilter = 'all';       // активный фильтр (all|new|...)
+let ordersLoaded = false;
+
+/**
+ * Сохранить новый заказ в БД (insert от anon ОК благодаря RLS).
+ * Возвращает {ok, id, error}.
+ */
+async function saveOrderToDb({ name, phone, comment, items, total, hasApprox }) {
+  if (!supabase) return { ok: false, error: 'no-supabase' };
+  const { data, error } = await supabase
+    .from('orders')
+    .insert({
+      customer_name:    name,
+      customer_phone:   phone,
+      customer_comment: comment || '',
+      items:            items,
+      total_amount:     total,
+      has_approx_price: !!hasApprox,
+    })
+    .select('id')
+    .single();
+  if (error) {
+    console.error('[orders] insert failed:', error);
+    return { ok: false, error: error.message };
+  }
+  return { ok: true, id: data.id };
+}
+
+/** Загрузить все заказы (только если админ) */
+async function fetchOrders() {
+  if (!supabase || !isAdmin) return;
+  const { data, error } = await supabase
+    .from('orders')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) {
+    console.error('[orders] fetch failed:', error);
+    showToast('Не удалось загрузить заказы: ' + error.message, 4000);
+    return;
+  }
+  ORDERS_CACHE = data || [];
+  ordersLoaded = true;
+  renderOrders();
+  updateOrdersBadge();
+}
+
+/** Обновить статус заказа */
+async function updateOrderStatus(id, status) {
+  if (!supabase) return false;
+  const { error } = await supabase
+    .from('orders')
+    .update({ status })
+    .eq('id', id);
+  if (error) {
+    showToast('Не удалось обновить статус: ' + error.message, 4000);
+    return false;
+  }
+  const order = ORDERS_CACHE.find(o => o.id === id);
+  if (order) order.status = status;
+  updateOrdersBadge();
+  return true;
+}
+
+/** Сохранить заметку админа */
+async function updateOrderNotes(id, notes) {
+  if (!supabase) return false;
+  const { error } = await supabase
+    .from('orders')
+    .update({ admin_notes: notes })
+    .eq('id', id);
+  if (error) {
+    showToast('Не удалось сохранить заметку: ' + error.message, 4000);
+    return false;
+  }
+  const order = ORDERS_CACHE.find(o => o.id === id);
+  if (order) order.admin_notes = notes;
+  return true;
+}
+
+/** Удалить заказ */
+async function deleteOrder(id) {
+  if (!supabase) return false;
+  const { error } = await supabase
+    .from('orders')
+    .delete()
+    .eq('id', id);
+  if (error) {
+    showToast('Не удалось удалить: ' + error.message, 4000);
+    return false;
+  }
+  ORDERS_CACHE = ORDERS_CACHE.filter(o => o.id !== id);
+  renderOrders();
+  updateOrdersBadge();
+  return true;
+}
+
+/** Бейдж в шапке: количество новых заказов */
+function updateOrdersBadge() {
+  const badge = document.getElementById('ordersBadge');
+  if (!badge) return;
+  const newCount = ORDERS_CACHE.filter(o => o.status === 'new').length;
+  if (newCount > 0) {
+    badge.textContent = newCount;
+    badge.removeAttribute('hidden');
+  } else {
+    badge.setAttribute('hidden', '');
+  }
+}
+
+/** Форматирование даты в ru-локали */
+function formatOrderDate(iso) {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleString('ru-RU', {
+      day: '2-digit', month: 'long', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    });
+  } catch { return iso; }
+}
+
+/** Рендер списка заказов с учётом фильтра */
+function renderOrders() {
+  const list  = document.getElementById('ordersList');
+  const empty = document.getElementById('ordersEmpty');
+  if (!list) return;
+
+  // удаляем старые карточки, оставляя empty-сообщение в DOM
+  list.querySelectorAll('.order-card').forEach(el => el.remove());
+
+  const filtered = ordersFilter === 'all'
+    ? ORDERS_CACHE
+    : ORDERS_CACHE.filter(o => o.status === ordersFilter);
+
+  if (filtered.length === 0) {
+    empty.hidden = false;
+    empty.querySelector('p').textContent = ordersLoaded
+      ? (ordersFilter === 'all' ? 'Здесь появятся заказы клиентов' : 'Нет заказов с таким статусом')
+      : 'Загружаю заказы…';
+    return;
+  }
+  empty.hidden = true;
+
+  for (const order of filtered) {
+    list.appendChild(buildOrderCard(order));
+  }
+}
+
+/** Одна карточка заказа */
+function buildOrderCard(order) {
+  const card = document.createElement('div');
+  card.className = 'order-card';
+  card.dataset.id = order.id;
+
+  const items = Array.isArray(order.items) ? order.items : [];
+  const itemsHTML = items.map(it => {
+    const qty  = it.qty || 1;
+    const sum  = (it.price || 0) * qty;
+    const name = esc(it.name || it.id || 'позиция');
+    const emoji = it.emoji ? esc(it.emoji) + ' ' : '';
+    return `
+      <div class="order-item">
+        <span class="order-item-name">${emoji}${name}</span>
+        <span class="order-item-qty">× ${qty}${it.unit ? ' ' + esc(it.unit) : ''}</span>
+        <span class="order-item-sum">${sum.toLocaleString('ru-RU')} ₽</span>
+      </div>`;
+  }).join('');
+
+  const phoneClean = String(order.customer_phone || '').replace(/[^\d+]/g, '');
+  const totalStr   = (order.total_amount || 0).toLocaleString('ru-RU');
+  const idShort    = String(order.id).slice(0, 8);
+
+  card.innerHTML = `
+    <div class="order-head">
+      <div class="order-meta">
+        <span class="order-id">#${idShort}</span>
+        <span class="order-date">${formatOrderDate(order.created_at)}</span>
+      </div>
+      <div class="order-status-wrap">
+        <span class="order-status-dot s-${esc(order.status)}"></span>
+        <select class="order-status-select" data-id="${esc(order.id)}">
+          ${Object.entries(ORDER_STATUS_LABELS).map(([k, v]) =>
+            `<option value="${k}"${k === order.status ? ' selected' : ''}>${v}</option>`
+          ).join('')}
+        </select>
+      </div>
+    </div>
+
+    <div class="order-body">
+      <div class="order-customer">
+        <div class="order-customer-row"><strong>Имя:</strong> ${esc(order.customer_name || '')}</div>
+        <div class="order-customer-row"><strong>Телефон:</strong> <a href="tel:${esc(phoneClean)}">${esc(order.customer_phone || '')}</a></div>
+        ${order.customer_comment ? `<div class="order-comment">«${esc(order.customer_comment)}»</div>` : ''}
+      </div>
+      <div class="order-items">
+        ${itemsHTML}
+        <div class="order-total-row">
+          <span class="order-total-label">Итого</span>
+          <span class="order-total-sum${order.has_approx_price ? ' approx' : ''}">${totalStr} ₽</span>
+        </div>
+        ${order.has_approx_price ? '<div class="order-approx-note">* в заказе есть позиции «от X ₽», итог приблизительный</div>' : ''}
+      </div>
+    </div>
+
+    <div class="order-notes-wrap">
+      <span class="order-notes-label">Заметки администратора</span>
+      <textarea class="order-notes" data-id="${esc(order.id)}" placeholder="Внутренние комментарии — клиент их не видит">${esc(order.admin_notes || '')}</textarea>
+    </div>
+
+    <div class="order-actions">
+      <button class="order-delete-btn" data-id="${esc(order.id)}" title="Удалить заказ">🗑 Удалить</button>
+    </div>
+  `;
+
+  // ─── обработчики ───
+  // смена статуса
+  card.querySelector('.order-status-select').addEventListener('change', async (e) => {
+    const newStatus = e.target.value;
+    const ok = await updateOrderStatus(order.id, newStatus);
+    if (ok) {
+      const dot = card.querySelector('.order-status-dot');
+      dot.className = 'order-status-dot s-' + newStatus;
+      showToast('Статус обновлён');
+      // если активен фильтр — переотрисуем список
+      if (ordersFilter !== 'all' && ordersFilter !== newStatus) renderOrders();
+    } else {
+      e.target.value = order.status; // откат
+    }
+  });
+
+  // заметки сохраняем при потере фокуса (не на каждое нажатие)
+  const notesEl = card.querySelector('.order-notes');
+  let notesTimer = null;
+  notesEl.addEventListener('blur', async () => {
+    if (notesEl.value === (order.admin_notes || '')) return;
+    await updateOrderNotes(order.id, notesEl.value);
+    showToast('Заметка сохранена');
+  });
+
+  // удаление с подтверждением
+  card.querySelector('.order-delete-btn').addEventListener('click', async () => {
+    if (!confirm('Удалить заказ #' + idShort + ' навсегда? Это действие нельзя отменить.')) return;
+    await deleteOrder(order.id);
+    showToast('🗑 Заказ удалён');
+  });
+
+  return card;
+}
+
+/** Привязка фильтров и кнопки обновить (один раз при инициализации) */
+function bindOrdersUI() {
+  const filterEl = document.getElementById('ordersFilter');
+  if (filterEl) {
+    filterEl.addEventListener('click', (e) => {
+      const chip = e.target.closest('.filter-chip');
+      if (!chip) return;
+      filterEl.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      ordersFilter = chip.dataset.status;
+      renderOrders();
+    });
+  }
+  const refreshBtn = document.getElementById('ordersRefresh');
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', async () => {
+      refreshBtn.disabled = true;
+      refreshBtn.textContent = '↻ Обновляю…';
+      await fetchOrders();
+      refreshBtn.disabled = false;
+      refreshBtn.textContent = '↻ Обновить';
+    });
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
    RENDER
    ═══════════════════════════════════════════════════════════════ */
 function buildCardHTML(p, section, isBouq) {
@@ -2026,14 +2566,35 @@ document.addEventListener('keydown', (e) => {
 });
 
 /* ─── Подписка на изменения сессии + первичная проверка ─────── */
+function onAdminStateChanged(prevAdmin) {
+  // Если админ только что вошёл — подтянуть заказы.
+  // Если вышел — забыть кэш.
+  if (isAdmin && !prevAdmin) {
+    fetchOrders();
+  } else if (!isAdmin && prevAdmin) {
+    ORDERS_CACHE = [];
+    ordersLoaded = false;
+    renderOrders();
+    updateOrdersBadge();
+    // если активна вкладка «Заказы», переключаемся на каталог
+    if (document.querySelector('.tab-panel.active')?.id === 'tab-orders') {
+      switchTab('cut');
+    }
+  }
+}
+
 if (supabase) {
   supabase.auth.getSession().then(({ data }) => {
+    const prev = isAdmin;
     isAdmin = !!data.session;
     applyAdminUI();
+    onAdminStateChanged(prev);
   });
   supabase.auth.onAuthStateChange((_event, session) => {
+    const prev = isAdmin;
     isAdmin = !!session;
     applyAdminUI();
+    onAdminStateChanged(prev);
   });
 } else {
   // Supabase не настроен — кнопка просто будет вести в «Войти», но логин отдаст ошибку.
@@ -2650,6 +3211,7 @@ document.getElementById('checkoutForm').addEventListener('submit', async e => {
   e.preventDefault();
   const nameEl  = document.getElementById('co-name');
   const phoneEl = document.getElementById('co-phone');
+  const commentEl = document.getElementById('co-comment');
   const nameErr  = document.getElementById('co-name-err');
   const phoneErr = document.getElementById('co-phone-err');
   const btn = document.getElementById('checkoutSubmitBtn');
@@ -2664,25 +3226,53 @@ document.getElementById('checkoutForm').addEventListener('submit', async e => {
   btn.disabled = true;
   btn.textContent = 'Отправляем…';
 
+  // Собираем данные заказа (используем те же поля, что и для web3forms)
+  const cartItems = getCart();
+  const orderPayload = {
+    name:       nameEl.value.trim(),
+    phone:      phoneEl.value.trim(),
+    comment:    commentEl.value.trim(),
+    items:      cartItems.map(it => ({
+      id:       it.id,
+      name:     it.name,
+      emoji:    it.emoji || '',
+      price:    it.price,
+      priceStr: it.priceStr || '',
+      unit:     it.unit || '',
+      qty:      it.qty,
+    })),
+    total:      cartTotal(),
+    hasApprox:  hasApproxPrice(),
+  };
+
+  // 1. Пишем в Supabase. Это основной канал — заказ должен попасть в админку.
+  let dbOk = false;
+  if (supabase) {
+    const result = await saveOrderToDb(orderPayload);
+    dbOk = result.ok;
+    if (!dbOk) {
+      console.error('[checkout] DB save failed:', result.error);
+    }
+  }
+
+  // 2. Параллельно отправляем web3forms (email-резерв). Не блокирует UX, ошибки игнорим.
   try {
     const formData = new FormData(e.target);
-    const res  = await fetch('https://api.web3forms.com/submit', { method: 'POST', body: formData });
-    const data = await res.json();
-    if (data.success) {
-      saveCart([]);
-      updateCartBadge();
-      document.getElementById('checkoutForm').style.display   = 'none';
-      document.getElementById('checkoutSuccess').style.display = '';
-    } else {
-      btn.disabled = false;
-      btn.textContent = 'Отправить заказ';
-      showToast('Не удалось отправить. Попробуйте ещё раз.');
-    }
-  } catch {
+    fetch('https://api.web3forms.com/submit', { method: 'POST', body: formData }).catch(()=>{});
+  } catch {}
+
+  if (supabase && !dbOk) {
     btn.disabled = false;
     btn.textContent = 'Отправить заказ';
-    showToast('Ошибка сети. Проверьте подключение.');
+    showToast('Не удалось оформить заказ. Попробуйте ещё раз или позвоните нам.');
+    return;
   }
+  // Если supabase не настроен — считаем успехом отправку email через web3forms (старое поведение)
+
+  saveCart([]);
+  updateCartBadge();
+  document.getElementById('checkoutForm').style.display   = 'none';
+  document.getElementById('checkoutSuccess').style.display = '';
 });
 
 /* ═══════════════════════════════════════════════════════════════
@@ -2697,6 +3287,7 @@ document.getElementById('checkoutForm').addEventListener('submit', async e => {
   renderAll();
   updateCartBadge();
   observeCards();
+  bindOrdersUI();
 })();
 </script>
 </body>
