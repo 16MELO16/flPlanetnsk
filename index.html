@@ -1972,12 +1972,14 @@ let ordersFilter = 'all';       // активный фильтр (all|new|...)
 let ordersLoaded = false;
 
 /**
- * Сохранить новый заказ в БД (insert от anon ОК благодаря RLS).
- * Возвращает {ok, id, error}.
+ * Сохранить новый заказ в БД.
+ * Важно: НЕ делаем .select() после insert — у anon-роли нет SELECT-политики
+ * на orders, и попытка прочитать вставленную строку обратно падает с RLS.
+ * INSERT возвращает только success/error, и этого достаточно для UI.
  */
 async function saveOrderToDb({ name, phone, comment, items, total, hasApprox }) {
   if (!supabase) return { ok: false, error: 'no-supabase' };
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from('orders')
     .insert({
       customer_name:    name,
@@ -1986,14 +1988,12 @@ async function saveOrderToDb({ name, phone, comment, items, total, hasApprox }) 
       items:            items,
       total_amount:     total,
       has_approx_price: !!hasApprox,
-    })
-    .select('id')
-    .single();
+    });
   if (error) {
     console.error('[orders] insert failed:', error);
     return { ok: false, error: error.message };
   }
-  return { ok: true, id: data.id };
+  return { ok: true };
 }
 
 /** Загрузить все заказы (только если админ) */
@@ -2584,12 +2584,28 @@ function onAdminStateChanged(prevAdmin) {
 }
 
 if (supabase) {
-  supabase.auth.getSession().then(({ data }) => {
-    const prev = isAdmin;
-    isAdmin = !!data.session;
-    applyAdminUI();
-    onAdminStateChanged(prev);
-  });
+  // Восстанавливаем сессию из localStorage. Если refresh token истёк или удалён —
+  // тихо чистим состояние и продолжаем как анонимный пользователь.
+  supabase.auth.getSession()
+    .then(({ data, error }) => {
+      const prev = isAdmin;
+      if (error) {
+        console.info('[auth] нет валидной сессии:', error.message);
+        isAdmin = false;
+        // Чистим испорченный refresh token, чтобы он больше не пытался обновляться
+        supabase.auth.signOut().catch(()=>{});
+      } else {
+        isAdmin = !!data.session;
+      }
+      applyAdminUI();
+      onAdminStateChanged(prev);
+    })
+    .catch(err => {
+      console.info('[auth] ошибка восстановления сессии:', err);
+      isAdmin = false;
+      applyAdminUI();
+    });
+
   supabase.auth.onAuthStateChange((_event, session) => {
     const prev = isAdmin;
     isAdmin = !!session;
