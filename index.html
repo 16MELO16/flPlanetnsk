@@ -16,6 +16,9 @@
   <meta property="og:locale" content="ru_RU" />
 
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌸</text></svg>" />
+  <!-- Preconnect к Supabase: DNS+TLS до начала парсинга JS, экономия 100-300мс на мобильном -->
+  <link rel="preconnect" href="https://xonizpnbqcgusjrlahue.supabase.co" crossorigin />
+  <link rel="dns-prefetch" href="https://xonizpnbqcgusjrlahue.supabase.co" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&display=swap" rel="stylesheet" />
@@ -1920,10 +1923,32 @@ function saveAdded(arr) {
    КАТАЛОГ — кэш в памяти; источник истины — Supabase (если настроен).
    Если Supabase не настроен или БД недоступна — fallback на DEFAULT_PRODUCTS
    + localStorage (старое поведение).
+
+   Дополнительно: stale-while-revalidate через localStorage. На повторных
+   заходах пользователь сразу видит каталог из кэша браузера (мгновенно),
+   а свежие данные с Supabase подтягиваются в фоне и обновляют рендер.
    ═══════════════════════════════════════════════════════════════ */
 const useDb = !!supabase;
 let catalogLoaded = false;
 let PRODUCTS_CACHE = { cut: [], pot: [], cuttings: [] };
+const LS_CATALOG_CACHE = 'fp_catalog_cache_v1';
+const CATALOG_CACHE_TTL_MS = 24 * 60 * 60 * 1000;  // сутки
+
+function readCatalogFromLS() {
+  try {
+    const raw = localStorage.getItem(LS_CATALOG_CACHE);
+    if (!raw) return null;
+    const obj = JSON.parse(raw);
+    if (!obj || !obj.ts || !obj.cache) return null;
+    if (Date.now() - obj.ts > CATALOG_CACHE_TTL_MS) return null;  // протух
+    return obj.cache;
+  } catch { return null; }
+}
+function writeCatalogToLS(cache) {
+  try {
+    localStorage.setItem(LS_CATALOG_CACHE, JSON.stringify({ ts: Date.now(), cache }));
+  } catch { /* localStorage переполнен — просто пропускаем */ }
+}
 
 /* Маппинг между схемой БД и форматом, который ожидает рендер */
 function dbRowToJs(row) {
@@ -1961,7 +1986,19 @@ function jsToDbRow(p) {
   };
 }
 
-/* Один fetch при старте страницы. */
+/** Подтянуть каталог из localStorage (если есть) — для мгновенного первого рендера.
+ *  Возвращает true, если из кэша удалось наполнить PRODUCTS_CACHE. */
+function preloadCatalogFromLS() {
+  if (!useDb) return false;
+  const cache = readCatalogFromLS();
+  if (!cache) return false;
+  // Гарантируем все нужные секции
+  PRODUCTS_CACHE = { cut: [], pot: [], cuttings: [], ...cache };
+  catalogLoaded = true;
+  return true;
+}
+
+/** Свежий запрос к Supabase. Обновляет PRODUCTS_CACHE, пишет в localStorage. */
 async function loadCatalog() {
   if (!useDb) return;
   try {
@@ -1978,11 +2015,12 @@ async function loadCatalog() {
     }
     PRODUCTS_CACHE = cache;
     catalogLoaded = true;
+    writeCatalogToLS(cache);   // запоминаем для следующих заходов
   } catch (e) {
     console.warn('[Цветочная планета] Каталог из БД не загружен. ' +
       'Возможно, миграция SQL ещё не выполнена в Supabase. ' +
       'Сайт работает на встроенном каталоге (DEFAULT_PRODUCTS + localStorage).', e);
-    catalogLoaded = false;
+    if (!catalogLoaded) catalogLoaded = false;  // не сбрасываем уже загруженный кэш
   }
 }
 
@@ -2014,6 +2052,7 @@ async function addProductToCatalog(p) {
     const created = dbRowToJs(data);
     if (!PRODUCTS_CACHE[created.section]) PRODUCTS_CACHE[created.section] = [];
     PRODUCTS_CACHE[created.section].push(created);
+    writeCatalogToLS(PRODUCTS_CACHE);   // обновляем кэш
     return created;
   }
   // fallback
@@ -2041,6 +2080,7 @@ async function deleteProductFromCatalog(id, section) {
     if (PRODUCTS_CACHE[section]) {
       PRODUCTS_CACHE[section] = PRODUCTS_CACHE[section].filter(p => p.id !== id);
     }
+    writeCatalogToLS(PRODUCTS_CACHE);   // обновляем кэш
     // Подчищаем фото из Storage (best-effort, ошибки игнорим)
     if (photoPath) {
       supabase.storage.from(STORAGE_BUCKET).remove([photoPath]).catch(()=>{});
@@ -2366,8 +2406,11 @@ function buildCardHTML(p, section) {
   const photos   = getPhotos();
   const photoUrl = p.photo_url || photos[p.id] || null;
   const hasPhoto = !!photoUrl;
+  // loading=lazy — грузим только когда карточка близко к экрану
+  // decoding=async — браузер декодит JPEG в фоне, не блокирует UI
+  // fetchpriority=low — фото не приоритетнее текста и шрифтов
   const thumbInner = hasPhoto
-    ? `<img class="thumb-img" src="${esc(photoUrl)}" alt="${esc(p.name1)}" loading="lazy" />`
+    ? `<img class="thumb-img" src="${esc(photoUrl)}" alt="${esc(p.name1)}" loading="lazy" decoding="async" fetchpriority="low" />`
     : `<div class="leaf-bg">${p.bg || p.emoji}</div>${p.emoji}`;
 
   return `
@@ -2859,8 +2902,10 @@ function compressImage(file, maxW = 900, maxH = 700, quality = 0.8) {
   });
 }
 
-/** Сжать изображение и вернуть Blob (для загрузки в Supabase Storage) */
-function compressImageToBlob(file, maxW = 1200, maxH = 900, quality = 0.82) {
+/** Сжать изображение и вернуть Blob (для загрузки в Supabase Storage).
+ *  Параметры подобраны под мобильные: ~30-50 КБ на фото, визуально достаточно
+ *  для карточки в каталоге (макс ширина карточки — около 380 px). */
+function compressImageToBlob(file, maxW = 800, maxH = 600, quality = 0.78) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = ev => {
@@ -2950,6 +2995,7 @@ async function uploadProductPhotoToStorage(productId, file) {
     const target = list && list.find(p => p.id === productId);
     if (target) target.photo_url = publicUrl;
   }
+  writeCatalogToLS(PRODUCTS_CACHE);
   return { ok: true, url: publicUrl };
 }
 
@@ -2981,6 +3027,7 @@ async function removeProductPhotoFromStorage(productId) {
     const target = list && list.find(p => p.id === productId);
     if (target) target.photo_url = null;
   }
+  writeCatalogToLS(PRODUCTS_CACHE);
   return { ok: true };
 }
 
@@ -3532,7 +3579,7 @@ function renderCartItems() {
   cart.innerHTML = items.map(item => {
     const lineTotal = item.price * item.qty;
     const thumbHTML = item.photo
-      ? `<img src="${esc(item.photo)}" alt="" />`
+      ? `<img src="${esc(item.photo)}" alt="" loading="lazy" decoding="async" />`
       : item.emoji;
     return `
       <div class="cart-item" data-id="${esc(item.id)}">
@@ -3706,15 +3753,29 @@ document.getElementById('checkoutForm').addEventListener('submit', async e => {
    INIT
    ═══════════════════════════════════════════════════════════════ */
 (async function init() {
-  // Сначала тянем каталог из БД (если Supabase настроен).
-  // Если БД недоступна или таблица ещё не создана — функция тихо вернётся,
-  // и getProducts() сам провалится в fallback на DEFAULT_PRODUCTS+localStorage.
-  await loadCatalog();
+  // 1. Мгновенный первый рендер: пытаемся взять каталог из localStorage-кэша.
+  //    Если кэш есть — пользователь видит товары сразу же, не ждёт сети.
+  const usedCache = preloadCatalogFromLS();
+
+  // 2. Если кэша нет — ждём первый fetch синхронно (пустой экран до ответа).
+  //    Если кэш есть — рендерим его и параллельно обновляем в фоне.
+  if (!usedCache) {
+    await loadCatalog();
+  }
 
   renderAll();
   updateCartBadge();
   observeCards();
   bindOrdersUI();
+
+  // 3. Если рендерили из кэша — теперь обновляем свежими данными в фоне.
+  //    Когда придут — перерисуем (изменения видны через 1-2 секунды).
+  if (usedCache) {
+    loadCatalog().then(() => {
+      renderAll();
+      observeCards();
+    });
+  }
 })();
 </script>
 </body>
