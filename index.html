@@ -1400,7 +1400,7 @@
         </div>
       </a>
       <div class="header-right">
-        <div class="header-badge">Срезка · Горшечные<br>Черенки · Букеты</div>
+        <div class="header-badge">Срезка · Горшечные<br>Черенки</div>
         <button class="btn-cart" id="cartBtn" aria-label="Корзина">
           🛒 Корзина
           <span class="cart-badge" id="cartBadge" hidden>0</span>
@@ -1416,7 +1416,6 @@
       <button class="tab-btn active" role="tab" data-tab="cut">🌹 Срезанные цветы</button>
       <button class="tab-btn" role="tab" data-tab="pot">🌷 Горшечные растения</button>
       <button class="tab-btn" role="tab" data-tab="cuttings">🌿 Черенки и саженцы</button>
-      <button class="tab-btn" role="tab" data-tab="bouquets">💐 Букеты и композиции</button>
       <button class="tab-btn" role="tab" data-tab="contacts">📞 Контакты</button>
       <button class="tab-btn tab-admin" role="tab" data-tab="orders">📋 Заказы <span class="orders-badge" id="ordersBadge" hidden>0</span></button>
     </nav>
@@ -1455,17 +1454,6 @@
       <div class="divider"></div>
     </div>
     <div class="grid-3" id="grid-cuttings"></div>
-  </section>
-
-  <!-- ═══════════════ TAB: БУКЕТЫ И КОМПОЗИЦИИ ════════════════ -->
-  <section class="tab-panel" id="tab-bouquets" role="tabpanel">
-    <div class="section-hero">
-      <span class="section-tag">Авторская флористика</span>
-      <h1 class="section-title">Букеты <em>&amp;</em> композиции</h1>
-      <p class="section-desc">Каждая работа создаётся вручную нашими флористами с любовью к деталям</p>
-      <div class="divider"></div>
-    </div>
-    <div class="grid-2" id="grid-bouquets"></div>
   </section>
 
   <!-- ═══════════════ TAB: ЗАКАЗЫ (только для админа) ════════ -->
@@ -1602,7 +1590,6 @@
             <option value="cut">🌹 Срезанные цветы</option>
             <option value="pot">🌷 Горшечные растения</option>
             <option value="cuttings">🌿 Черенки и саженцы</option>
-            <option value="bouquets">💐 Букеты и композиции</option>
           </select>
           <span class="err-msg" id="af-section-err">Выберите раздел</span>
         </div>
@@ -1629,11 +1616,6 @@
         <div class="field form-full">
           <label for="af-latin">Латинское название</label>
           <input type="text" id="af-latin" placeholder="Rosa × hybrida" />
-        </div>
-
-        <div class="field form-full" id="af-comp-wrap" style="display:none">
-          <label for="af-comp">Состав букета</label>
-          <input type="text" id="af-comp" placeholder="25 роз, зелень, атласная лента" />
         </div>
 
         <div class="field form-full">
@@ -1904,22 +1886,14 @@ const DEFAULT_PRODUCTS = {
     { id:'cut2-6', emoji:'🌸', bg:'🌸', badge:null,   name1:'Стрептокарпус',name2:'',          latin:'Streptocarpus hybrida',    desc:'Листовой черенок с детками. Цветёт обильно и долго — 9 месяцев в году.',        price:'320 ₽',   unit:'' },
     { id:'cut2-7', emoji:'🪷', bg:'💜', badge:'new',  name1:'Глоксиния',    name2:'',          latin:'Sinningia speciosa',       desc:'Бархатные колокольчики крупных цветов. Черенок листовой, уже укоренён.',         price:'280 ₽',   unit:'' },
     { id:'cut2-8', emoji:'🪨', bg:'🌵', badge:'hit',  name1:'Эхеверия',     name2:'розетка',   latin:'Echeveria elegans',        desc:'Каменная роза из суккулентов. Детка с корнями, 5–7 см в диаметре.',             price:'190 ₽',   unit:'' },
-  ],
-  bouquets: [
-    { id:'bouq-1', emoji:'💍', bg:'💐', badge:'hit',  name1:'Свадебный',  name2:'букет невесты',   comp:'белые пионы, эустома, гринери, лента атласная',                          desc:'Нежная классика для особенного дня. Индивидуальная сборка под платье.',                            price:'6 500 ₽', unit:'' },
-    { id:'bouq-2', emoji:'🌸', bg:'🌸', badge:'rare', name1:'Монобукет',  name2:'из пионов',       comp:'25 пионов сортовых, упаковка крафт, рафия',                              desc:'Роскошный объём из одного цветка — эффект максимальный, вкус безупречный.',                        price:'9 500 ₽', unit:'' },
-    { id:'bouq-3', emoji:'🪴', bg:'🪴', badge:null,   name1:'Корзина',    name2:'с суккулентами',  comp:'12 видов суккулентов, мох, декоративные камни, ивовая корзина',          desc:'Живой подарок, который будет радовать годами. Идеально для дома и офиса.',                         price:'4 200 ₽', unit:'' },
-    { id:'bouq-4', emoji:'🎁', bg:'🌹', badge:'hit',  name1:'Коробка',    name2:'с розами',        comp:'25 роз сорта «Джулия», флористическая пена, шляпная коробка',            desc:'Безупречная классика в элегантной упаковке. Выбор цвета — на ваше усмотрение.',                   price:'7 800 ₽', unit:'' },
-    { id:'bouq-5', emoji:'🌷', bg:'🌷', badge:null,   name1:'Весенний',   name2:'микс',            comp:'тюльпаны, нарциссы, мускари, веточки сирени, зелень',                    desc:'Ароматная весна в руках. Сборный букет из лучших сезонных цветов.',                               price:'3 400 ₽', unit:'' },
-    { id:'bouq-6', emoji:'🌿', bg:'🎨', badge:'new',  name1:'Авторская',  name2:'композиция',      comp:'подбор флориста по сезону и вашему запросу',                             desc:'Уникальная работа нашего флориста: от концепции до каждого стебля. Нет двух одинаковых.',         price:'от 5 000 ₽', unit:'' },
   ]
 };
 
 /* Маппинги */
-const THUMB_CLASS = { cut:'thumb-cut', pot:'thumb-pot', cuttings:'thumb-cut2', bouquets:'thumb-bouq' };
+const THUMB_CLASS = { cut:'thumb-cut', pot:'thumb-pot', cuttings:'thumb-cut2' };
 const BADGE_LABELS = { hit:'Хит', rare:'Редкий', new:'Новинка' };
 const BADGE_CLASSES = { hit:'badge-hit', rare:'badge-rare', new:'badge-new' };
-const BTN_LABELS = { cut:'В заказ', pot:'В заказ', cuttings:'В заказ', bouquets:'Заказать' };
+const BTN_LABELS = { cut:'В заказ', pot:'В заказ', cuttings:'В заказ' };
 
 /* ═══════════════════════════════════════════════════════════════
    STORAGE — localStorage (deleted IDs + added products)
@@ -1949,7 +1923,7 @@ function saveAdded(arr) {
    ═══════════════════════════════════════════════════════════════ */
 const useDb = !!supabase;
 let catalogLoaded = false;
-let PRODUCTS_CACHE = { cut: [], pot: [], cuttings: [], bouquets: [] };
+let PRODUCTS_CACHE = { cut: [], pot: [], cuttings: [] };
 
 /* Маппинг между схемой БД и форматом, который ожидает рендер */
 function dbRowToJs(row) {
@@ -1997,7 +1971,7 @@ async function loadCatalog() {
       .order('section')
       .order('sort_order');
     if (error) throw error;
-    const cache = { cut: [], pot: [], cuttings: [], bouquets: [] };
+    const cache = { cut: [], pot: [], cuttings: [] };
     for (const row of data) {
       const p = dbRowToJs(row);
       if (cache[p.section]) cache[p.section].push(p);
@@ -2375,7 +2349,7 @@ function bindOrdersUI() {
 /* ═══════════════════════════════════════════════════════════════
    RENDER
    ═══════════════════════════════════════════════════════════════ */
-function buildCardHTML(p, section, isBouq) {
+function buildCardHTML(p, section) {
   const thumbClass = THUMB_CLASS[section] || 'thumb-cut';
   const badgeHTML  = p.badge && BADGE_LABELS[p.badge]
     ? `<div class="badge ${BADGE_CLASSES[p.badge]}">${BADGE_LABELS[p.badge]}</div>` : '';
@@ -2386,7 +2360,6 @@ function buildCardHTML(p, section, isBouq) {
   const compHTML   = p.comp   ? `<div class="card-comp"><strong>Состав:</strong> ${esc(p.comp)}</div>` : '';
   const unitHTML   = p.unit   ? `<span>${esc(p.unit)}</span>` : '';
   const cartControl = buildCartControlHTML(p.id, section);
-  const bouqClass  = isBouq ? ' card-bouq' : '';
 
   // Фото товара: приоритет — публичный URL из БД (Supabase Storage),
   // запасной вариант — base64 из localStorage (старые фото со старых браузеров).
@@ -2398,7 +2371,7 @@ function buildCardHTML(p, section, isBouq) {
     : `<div class="leaf-bg">${p.bg || p.emoji}</div>${p.emoji}`;
 
   return `
-    <div class="card${bouqClass}" data-id="${esc(p.id)}" data-section="${esc(section)}">
+    <div class="card" data-id="${esc(p.id)}" data-section="${esc(section)}">
       <button class="btn-delete-card" aria-label="Удалить карточку" title="Удалить">✕</button>
       ${badgeHTML}
       <div class="card-thumb ${thumbClass}${hasPhoto ? ' has-photo' : ''}">
@@ -2435,12 +2408,11 @@ function esc(str) {
 }
 
 function renderSection(section, instant = false) {
-  const isBouq = section === 'bouquets';
   const grid = document.getElementById('grid-' + section);
   if (!grid) return;
 
   const products = getProducts(section);
-  let html = products.map(p => buildCardHTML(p, section, isBouq)).join('');
+  let html = products.map(p => buildCardHTML(p, section)).join('');
   html += buildAddCardHTML(section);
   grid.innerHTML = html;
 
@@ -2500,7 +2472,7 @@ function renderSection(section, instant = false) {
 }
 
 function renderAll() {
-  ['cut','pot','cuttings','bouquets'].forEach(renderSection);
+  ['cut','pot','cuttings'].forEach(renderSection);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -3063,13 +3035,11 @@ const addForm      = document.getElementById('addForm');
 const afSection    = document.getElementById('af-section');
 const afEmoji      = document.getElementById('af-emoji');
 const emojiPreview = document.getElementById('af-emoji-preview');
-const afCompWrap   = document.getElementById('af-comp-wrap');
 
 function openAddModal(preselect) {
   addModal.removeAttribute('hidden');
   requestAnimationFrame(() => addModal.classList.add('open'));
   if (preselect) afSection.value = preselect;
-  toggleCompField();
   afEmoji.focus();
 }
 
@@ -3147,13 +3117,6 @@ afEmoji.addEventListener('input', () => {
   emojiPreview.textContent = afEmoji.value.trim() || '🌸';
 });
 
-// Show/hide composition field
-afSection.addEventListener('change', toggleCompField);
-function toggleCompField() {
-  const isBouq = afSection.value === 'bouquets';
-  afCompWrap.style.display = isBouq ? '' : 'none';
-}
-
 function clearAddErrors() {
   ['af-section','af-emoji','af-name1','af-desc','af-price'].forEach(id => {
     const el = document.getElementById(id);
@@ -3195,7 +3158,6 @@ addForm.addEventListener('submit', async e => {
     name1:   document.getElementById('af-name1').value.trim(),
     name2:   document.getElementById('af-name2').value.trim(),
     latin:   document.getElementById('af-latin').value.trim(),
-    comp:    document.getElementById('af-comp').value.trim(),
     desc:    document.getElementById('af-desc').value.trim(),
     price:   document.getElementById('af-price').value.trim(),
     unit:    document.getElementById('af-unit').value.trim(),
