@@ -1386,6 +1386,135 @@
       transition: border-color var(--tr), color var(--tr);
     }
     .order-delete-btn:hover { border-color: var(--danger); color: var(--danger); }
+
+    /* ═══════════════════════════════════════════════════════════════
+       MOBILE OPTIMIZATIONS
+       Цель: удобство на iPhone/Android, читаемые шрифты, tap-target ≥ 40px,
+       защита от iOS-zoom на полях ввода (font-size: 16px), компактная шапка.
+       ═══════════════════════════════════════════════════════════════ */
+    @media (max-width: 720px) {
+      /* Шапка компактнее, чтобы помещались логотип + Корзина + Войти */
+      .header-inner { padding: 0 14px; }
+      .header-top   { padding: 14px 0 8px; gap: 10px; }
+      .logo-icon    { width: 36px; height: 36px; }
+      .logo-text    { font-size: 1.05rem; }
+      .logo-text span { font-size: .68rem; }
+      .header-right { gap: 8px; }
+
+      /* Кнопки шапки — меньше padding, чище визуал */
+      .btn-cart {
+        padding: 8px 14px;
+        font-size: .85rem;
+        min-height: 40px;
+      }
+      .btn-edit-toggle {
+        padding: 8px 12px;
+        font-size: .8rem;
+        min-height: 40px;
+      }
+
+      /* Tabs: горизонтальный скролл с увеличенным tap-target */
+      .tabs-nav {
+        margin: 0 -14px;
+        padding: 0 14px 4px;
+        scroll-snap-type: x proximity;
+      }
+      .tab-btn {
+        font-size: .9rem;
+        padding: 12px 12px 10px;
+        min-height: 44px;
+        scroll-snap-align: start;
+        white-space: nowrap;
+      }
+
+      /* Главный контейнер */
+      main { padding: 0 14px; }
+
+      /* Section hero — меньше воздуха, не такой огромный заголовок */
+      .section-hero { padding: 36px 0 20px; }
+      .section-title { font-size: 2.1rem; line-height: 1.1; }
+      .section-desc  { font-size: .98rem; padding: 0 12px; }
+      .section-tag   { font-size: .72rem; }
+
+      /* Грид карточек: на ширине 560-720px две колонки, на ≤560 уже одна (это в существующих правилах) */
+      /* Ничего не меняем — выше уже есть medias на .grid-3 */
+
+      /* Карточка товара */
+      .card-body { padding: 20px 18px 18px; }
+      .card-name { font-size: 1.1rem; }
+      .card-desc { font-size: .9rem; line-height: 1.55; }
+
+      /* Кнопка «В заказ» и контролы количества — больше tap-area */
+      .btn-add {
+        min-height: 40px;
+        padding: 10px 18px;
+        font-size: .85rem;
+      }
+      .card-qty-control { height: 40px; }
+      .card-qty-btn     { width: 40px; height: 40px; font-size: 1.25rem; }
+      .card-qty-num     { min-width: 32px; font-size: 1rem; }
+
+      /* Корзина-шторка на всю ширину */
+      .cart-drawer { max-width: none; }
+      .cart-drawer-header { padding: 18px 18px 14px; }
+      .cart-items   { padding: 14px 18px; }
+      .cart-footer  { padding: 16px 18px 24px; }
+      .cart-qty-btn { width: 32px; height: 32px; }    /* в корзине поменьше — там и так компактно */
+
+      /* Модалки */
+      .modal-overlay { padding: 12px; }
+      .modal-box     { padding: 26px 20px 22px; }
+      .modal-title   { font-size: 1.2rem; }
+      .modal-sub     { font-size: .85rem; }
+
+      /* iOS-zoom-защита: при font-size меньше 16px Safari зумит страницу,
+         когда тапаешь на поле ввода. Принудительно ставим 16px. */
+      .field input,
+      .field textarea,
+      .field select,
+      .order-status-select,
+      .order-notes {
+        font-size: 16px !important;
+      }
+
+      /* Контактная форма */
+      .form-card    { padding: 28px 20px; }
+      .contacts-card { padding: 32px 22px; }
+      .form-title   { font-size: 1.3rem; }
+      .contacts-title { font-size: 1.4rem; }
+
+      /* Заказы (админка) — карточки на полную ширину, без 2-колонок */
+      .orders-toolbar { padding: 0 14px; gap: 10px; }
+      .orders-list    { padding: 0 14px 60px; }
+      .order-card     { padding: 18px 18px; }
+      .order-head     { padding-bottom: 10px; }
+      .order-status-select { min-height: 40px; }
+
+      /* Toast не должен прилипать ко дну, чтобы не лез на iOS-полоску жестов */
+      .toast { bottom: 24px; }
+
+      /* Scroll-to-top кнопка */
+      #scrollTop { bottom: 22px; right: 18px; width: 46px; height: 46px; }
+
+      /* Edit-bar чуть тоньше */
+      .edit-bar { font-size: .72rem; padding: 6px 12px; }
+    }
+
+    /* Очень узкие экраны (iPhone SE, ~360px) */
+    @media (max-width: 380px) {
+      .logo-text span { display: none; }
+      .btn-edit-toggle #adminLabel { display: none; }    /* остаётся только иконка ✏️/🔒 */
+      .section-title { font-size: 1.85rem; }
+      .price { font-size: 1.1rem; }
+      .modal-box { padding: 22px 16px 20px; }
+    }
+
+    /* Поддержка safe-area для iPhone с «чёлкой» */
+    @supports (padding: env(safe-area-inset-bottom)) {
+      .cart-drawer { padding-bottom: env(safe-area-inset-bottom); }
+      footer       { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
+      #scrollTop   { bottom: calc(22px + env(safe-area-inset-bottom)); }
+    }
   </style>
 </head>
 <body>
