@@ -214,6 +214,28 @@
     .login-error[hidden] { display: none; }
     .btn-primary[disabled] { opacity: .55; cursor: wait; }
 
+    /* Переключение вход / запрос доступа */
+    .login-view[hidden] { display: none; }
+    .login-switch {
+      margin-top: 18px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      font-size: .88rem;
+      color: var(--muted);
+    }
+    .login-switch a {
+      color: var(--emerald);
+      text-decoration: none;
+      font-weight: 600;
+      border-bottom: 1px solid transparent;
+      transition: border-color var(--tr);
+    }
+    .login-switch a:hover { border-bottom-color: var(--emerald); }
+
+    .request-success { text-align: center; padding: 20px 0; }
+    .request-success .s-icon { font-size: 2.6rem; margin-bottom: 12px; }
+
     /* ─── TAB NAVIGATION ────────────────────────────────────────── */
     .tabs-nav {
       display: flex;
@@ -1693,28 +1715,80 @@
 <div class="modal-overlay" id="loginModal" hidden>
   <div class="modal-box modal-sm">
     <button class="modal-close" id="loginModalClose" aria-label="Закрыть">✕</button>
-    <div class="modal-title">Вход в панель</div>
-    <div class="modal-sub">Только для администраторов «Цветочной планеты»</div>
 
-    <form id="loginForm" novalidate>
-      <div class="field form-full">
-        <label for="login-email">Email</label>
-        <input type="email" id="login-email" autocomplete="email" placeholder="you@example.com" />
-        <span class="err-msg" id="login-email-err">Укажите email</span>
-      </div>
-      <div class="field form-full">
-        <label for="login-password">Пароль</label>
-        <input type="password" id="login-password" autocomplete="current-password" placeholder="••••••••" />
-        <span class="err-msg" id="login-password-err">Введите пароль</span>
-      </div>
+    <!-- ─── Вид 1: вход существующего админа ─── -->
+    <div class="login-view" id="loginViewSignIn">
+      <div class="modal-title">Вход в панель</div>
+      <div class="modal-sub">Только для администраторов «Цветочной планеты»</div>
 
-      <div class="login-error" id="login-error" hidden></div>
+      <form id="loginForm" novalidate>
+        <div class="field form-full">
+          <label for="login-email">Email</label>
+          <input type="email" id="login-email" autocomplete="email" placeholder="you@example.com" />
+          <span class="err-msg" id="login-email-err">Укажите email</span>
+        </div>
+        <div class="field form-full">
+          <label for="login-password">Пароль</label>
+          <input type="password" id="login-password" autocomplete="current-password" placeholder="••••••••" />
+          <span class="err-msg" id="login-password-err">Введите пароль</span>
+        </div>
 
-      <div class="modal-actions">
-        <button type="button" class="btn-secondary" id="loginCancel">Отмена</button>
-        <button type="submit" class="btn-primary" id="loginSubmit">Войти</button>
+        <div class="login-error" id="login-error" hidden></div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" id="loginCancel">Отмена</button>
+          <button type="submit" class="btn-primary" id="loginSubmit">Войти</button>
+        </div>
+      </form>
+
+      <div class="login-switch">
+        Нет доступа? <a href="#" id="goToRequest">Запросить</a>
       </div>
-    </form>
+    </div>
+
+    <!-- ─── Вид 2: запрос доступа ─── -->
+    <div class="login-view" id="loginViewRequest" hidden>
+      <div class="modal-title">Запросить доступ</div>
+      <div class="modal-sub">Заявка отправится администратору. После одобрения вам пришлют логин и пароль.</div>
+
+      <form id="requestForm" novalidate>
+        <div class="field form-full">
+          <label for="req-name">Ваше имя *</label>
+          <input type="text" id="req-name" placeholder="Александра Петрова" />
+          <span class="err-msg" id="req-name-err">Укажите имя</span>
+        </div>
+        <div class="field form-full">
+          <label for="req-email">Email *</label>
+          <input type="email" id="req-email" autocomplete="email" placeholder="you@example.com" />
+          <span class="err-msg" id="req-email-err">Укажите корректный email</span>
+        </div>
+        <div class="field form-full">
+          <label for="req-reason">Причина запроса</label>
+          <textarea id="req-reason" rows="3" placeholder="Например: новый флорист, буду вести каталог букетов"></textarea>
+        </div>
+
+        <div class="login-error" id="request-error" hidden></div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" id="requestCancel">Назад</button>
+          <button type="submit" class="btn-primary" id="requestSubmit">Отправить заявку</button>
+        </div>
+      </form>
+
+      <div class="login-switch">
+        Уже есть доступ? <a href="#" id="goToSignIn">Войти</a>
+      </div>
+    </div>
+
+    <!-- ─── Вид 3: успех заявки ─── -->
+    <div class="login-view" id="loginViewRequestSuccess" hidden>
+      <div class="request-success">
+        <div class="s-icon">✅</div>
+        <div class="modal-title" style="font-size:1.25rem">Заявка отправлена</div>
+        <p class="modal-sub" style="margin-top:8px">Администратор получил уведомление. После одобрения вам пришлют логин и пароль на указанный email.</p>
+        <button type="button" class="btn-primary" id="requestSuccessClose" style="margin-top:18px">Понятно</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1845,6 +1919,7 @@ function dbRowToJs(row) {
     comp:  row.comp || '',
     price: row.price || '',
     unit:  row.unit || '',
+    photo_url: row.photo_url || null,
   };
 }
 function jsToDbRow(p) {
@@ -1861,6 +1936,7 @@ function jsToDbRow(p) {
     comp:  p.comp || '',
     price: p.price || '',
     unit:  p.unit || '',
+    photo_url: p.photo_url || null,
   };
 }
 
@@ -1929,6 +2005,10 @@ async function addProductToCatalog(p) {
 /* Удалить товар из каталога (БД или localStorage) */
 async function deleteProductFromCatalog(id, section) {
   if (useDb && catalogLoaded) {
+    // Перед удалением запоминаем путь к фото, чтобы потом подтереть его в Storage
+    const product = (PRODUCTS_CACHE[section] || []).find(p => p.id === id);
+    const photoPath = storagePathFromUrl(product?.photo_url);
+
     const { error } = await supabase
       .from('products')
       .delete()
@@ -1939,6 +2019,10 @@ async function deleteProductFromCatalog(id, section) {
     }
     if (PRODUCTS_CACHE[section]) {
       PRODUCTS_CACHE[section] = PRODUCTS_CACHE[section].filter(p => p.id !== id);
+    }
+    // Подчищаем фото из Storage (best-effort, ошибки игнорим)
+    if (photoPath) {
+      supabase.storage.from(STORAGE_BUCKET).remove([photoPath]).catch(()=>{});
     }
     return true;
   }
@@ -2257,12 +2341,13 @@ function buildCardHTML(p, section, isBouq) {
   const btnLabel   = BTN_LABELS[section] || 'В заказ';
   const bouqClass  = isBouq ? ' card-bouq' : '';
 
-  // Photo support
+  // Фото товара: приоритет — публичный URL из БД (Supabase Storage),
+  // запасной вариант — base64 из localStorage (старые фото со старых браузеров).
   const photos   = getPhotos();
-  const photoUrl = photos[p.id];
+  const photoUrl = p.photo_url || photos[p.id] || null;
   const hasPhoto = !!photoUrl;
   const thumbInner = hasPhoto
-    ? `<img class="thumb-img" src="${photoUrl}" alt="${esc(p.name1)}" loading="lazy" />`
+    ? `<img class="thumb-img" src="${esc(photoUrl)}" alt="${esc(p.name1)}" loading="lazy" />`
     : `<div class="leaf-bg">${p.bg || p.emoji}</div>${p.emoji}`;
 
   return `
@@ -2332,11 +2417,20 @@ function renderSection(section, instant = false) {
 
   // Bind remove-photo buttons
   grid.querySelectorAll('.btn-remove-photo').forEach(btn => {
-    btn.addEventListener('click', e => {
+    btn.addEventListener('click', async e => {
       e.stopPropagation();
       const card = btn.closest('.card');
-      deletePhoto(card.dataset.id);
-      renderSection(card.dataset.section, true);
+      const id = card.dataset.id;
+      const section = card.dataset.section;
+
+      if (useDb && catalogLoaded) {
+        const res = await removeProductPhotoFromStorage(id);
+        if (!res.ok) { showToast('❌ Не удалось удалить фото: ' + res.error, 4000); return; }
+      }
+      // Чистим и localStorage-копию (если была)
+      deletePhoto(id);
+
+      renderSection(section, true);
       showToast('🗑 Фото удалено');
     });
   });
@@ -2487,6 +2581,8 @@ function openLoginModal() {
   loginPwdErr.classList.remove('show');
   loginEmail.classList.remove('error');
   loginPassword.classList.remove('error');
+  // Всегда показываем вид «Вход» при открытии (если виды уже инициализированы)
+  if (typeof showLoginView === 'function') showLoginView('signin');
   loginModal.removeAttribute('hidden');
   // даём браузеру отрисовать элемент, потом включаем .open для анимации
   requestAnimationFrame(() => loginModal.classList.add('open'));
@@ -2544,6 +2640,89 @@ loginForm.addEventListener('submit', async (e) => {
   } finally {
     loginSubmitBtn.disabled = false;
     loginSubmitBtn.textContent = 'Войти';
+  }
+});
+
+/* ─── Переключение видов внутри модалки логина ───────────────── */
+const loginViewSignIn  = document.getElementById('loginViewSignIn');
+const loginViewRequest = document.getElementById('loginViewRequest');
+const loginViewSuccess = document.getElementById('loginViewRequestSuccess');
+
+function showLoginView(which) {
+  loginViewSignIn.hidden  = which !== 'signin';
+  loginViewRequest.hidden = which !== 'request';
+  loginViewSuccess.hidden = which !== 'success';
+}
+
+document.getElementById('goToRequest').addEventListener('click', (e) => {
+  e.preventDefault();
+  document.getElementById('request-error').hidden = true;
+  ['req-name','req-email'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.classList.remove('error'); }
+    const errEl = document.getElementById(id + '-err');
+    if (errEl) errEl.classList.remove('show');
+  });
+  showLoginView('request');
+  setTimeout(() => document.getElementById('req-name').focus(), 30);
+});
+document.getElementById('goToSignIn').addEventListener('click', (e) => {
+  e.preventDefault();
+  showLoginView('signin');
+});
+document.getElementById('requestCancel').addEventListener('click', () => showLoginView('signin'));
+document.getElementById('requestSuccessClose').addEventListener('click', closeLoginModal);
+
+/* ─── Submit формы запроса доступа ────────────────────────────── */
+document.getElementById('requestForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const nameEl   = document.getElementById('req-name');
+  const emailEl  = document.getElementById('req-email');
+  const reasonEl = document.getElementById('req-reason');
+  const errBox   = document.getElementById('request-error');
+  const submit   = document.getElementById('requestSubmit');
+
+  errBox.hidden = true;
+  let bad = false;
+  if (!nameEl.value.trim())                                 { nameEl.classList.add('error');  document.getElementById('req-name-err').classList.add('show');  bad = true; }
+  else                                                       { nameEl.classList.remove('error'); document.getElementById('req-name-err').classList.remove('show'); }
+  if (!/^\S+@\S+\.\S+$/.test(emailEl.value.trim()))          { emailEl.classList.add('error'); document.getElementById('req-email-err').classList.add('show'); bad = true; }
+  else                                                       { emailEl.classList.remove('error'); document.getElementById('req-email-err').classList.remove('show'); }
+  if (bad) return;
+
+  if (!supabase) {
+    errBox.textContent = 'Авторизация не настроена. Свяжитесь с администратором напрямую.';
+    errBox.hidden = false;
+    return;
+  }
+
+  submit.disabled = true;
+  submit.textContent = 'Отправляю…';
+  try {
+    const { error } = await supabase
+      .from('admin_requests')
+      .insert({
+        full_name: nameEl.value.trim(),
+        email:     emailEl.value.trim().toLowerCase(),
+        reason:    reasonEl.value.trim(),
+      });
+    if (error) {
+      console.error('[admin_requests] insert failed:', error);
+      errBox.textContent = 'Не удалось отправить заявку: ' + (error.message || 'ошибка сети');
+      errBox.hidden = false;
+      return;
+    }
+    showLoginView('success');
+    // Сбрасываем форму на будущее
+    nameEl.value = '';
+    emailEl.value = '';
+    reasonEl.value = '';
+  } catch (err) {
+    errBox.textContent = 'Ошибка сети. Попробуйте ещё раз.';
+    errBox.hidden = false;
+  } finally {
+    submit.disabled = false;
+    submit.textContent = 'Отправить заявку';
   }
 });
 
@@ -2644,7 +2823,7 @@ function deletePhoto(id) {
   localStorage.setItem(LS_PHOTOS, JSON.stringify(photos));
 }
 
-/** Сжать изображение через canvas, вернуть base64 JPEG */
+/** Сжать изображение через canvas, вернуть base64 JPEG (legacy, для localStorage-fallback) */
 function compressImage(file, maxW = 900, maxH = 700, quality = 0.8) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -2671,6 +2850,131 @@ function compressImage(file, maxW = 900, maxH = 700, quality = 0.8) {
   });
 }
 
+/** Сжать изображение и вернуть Blob (для загрузки в Supabase Storage) */
+function compressImageToBlob(file, maxW = 1200, maxH = 900, quality = 0.82) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if (w > maxW || h > maxH) {
+          const ratio = Math.min(maxW / w, maxH / h);
+          w = Math.round(w * ratio);
+          h = Math.round(h * ratio);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width  = w;
+        canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        canvas.toBlob(blob => {
+          if (blob) resolve(blob);
+          else reject(new Error('canvas.toBlob() вернул null'));
+        }, 'image/jpeg', quality);
+      };
+      img.onerror = reject;
+      img.src = ev.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+/* ─── Supabase Storage: фото товаров ─────────────────────────── */
+const STORAGE_BUCKET = 'product-photos';
+
+/** Извлечь storage-path из публичного URL (для последующего delete). */
+function storagePathFromUrl(url) {
+  if (!url) return null;
+  const marker = '/' + STORAGE_BUCKET + '/';
+  const i = url.indexOf(marker);
+  if (i < 0) return null;
+  return url.slice(i + marker.length);
+}
+
+/** Загрузить фото товара в Storage и обновить products.photo_url + кэш.
+ *  Доступно только админу (по RLS). Возвращает {ok, url, error}. */
+async function uploadProductPhotoToStorage(productId, file) {
+  if (!supabase) return { ok: false, error: 'no-supabase' };
+
+  // 1. Сжимаем изображение в Blob
+  let blob;
+  try { blob = await compressImageToBlob(file); }
+  catch (e) { return { ok: false, error: 'compress-failed: ' + e.message }; }
+
+  // 2. Удаляем старое фото из Storage (если было) — чтобы не копились мусорные файлы
+  const oldUrl = (PRODUCTS_CACHE && Object.values(PRODUCTS_CACHE).flat().find(p => p.id === productId) || {}).photo_url;
+  const oldPath = storagePathFromUrl(oldUrl);
+  if (oldPath) {
+    await supabase.storage.from(STORAGE_BUCKET).remove([oldPath]).catch(()=>{});
+  }
+
+  // 3. Загружаем новое
+  const path = `${productId}-${Date.now()}.jpg`;
+  const { error: upErr } = await supabase.storage
+    .from(STORAGE_BUCKET)
+    .upload(path, blob, { contentType: 'image/jpeg', upsert: false });
+  if (upErr) {
+    console.error('[storage] upload failed:', upErr);
+    return { ok: false, error: upErr.message };
+  }
+
+  // 4. Получаем публичный URL
+  const { data: pub } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+  const publicUrl = pub.publicUrl;
+
+  // 5. Обновляем products.photo_url
+  const { error: dbErr } = await supabase
+    .from('products')
+    .update({ photo_url: publicUrl })
+    .eq('id', productId);
+  if (dbErr) {
+    // Если БД-update упал — почистим только что загруженный файл, чтобы не копились дубликаты
+    await supabase.storage.from(STORAGE_BUCKET).remove([path]).catch(()=>{});
+    console.error('[storage] products.photo_url update failed:', dbErr);
+    return { ok: false, error: dbErr.message };
+  }
+
+  // 6. Обновляем кэш
+  for (const sec of Object.keys(PRODUCTS_CACHE || {})) {
+    const list = PRODUCTS_CACHE[sec];
+    const target = list && list.find(p => p.id === productId);
+    if (target) target.photo_url = publicUrl;
+  }
+  return { ok: true, url: publicUrl };
+}
+
+/** Удалить фото товара из Storage и обнулить products.photo_url. */
+async function removeProductPhotoFromStorage(productId) {
+  if (!supabase) return { ok: false, error: 'no-supabase' };
+
+  const product = Object.values(PRODUCTS_CACHE || {}).flat().find(p => p.id === productId);
+  const oldPath = storagePathFromUrl(product?.photo_url);
+
+  // 1. Удаляем файл из bucket (если есть путь)
+  if (oldPath) {
+    await supabase.storage.from(STORAGE_BUCKET).remove([oldPath]).catch(()=>{});
+  }
+
+  // 2. Обнуляем колонку
+  const { error } = await supabase
+    .from('products')
+    .update({ photo_url: null })
+    .eq('id', productId);
+  if (error) {
+    console.error('[storage] clear photo_url failed:', error);
+    return { ok: false, error: error.message };
+  }
+
+  // 3. Кэш
+  for (const sec of Object.keys(PRODUCTS_CACHE || {})) {
+    const list = PRODUCTS_CACHE[sec];
+    const target = list && list.find(p => p.id === productId);
+    if (target) target.photo_url = null;
+  }
+  return { ok: true };
+}
+
 /* ─── Editing photo on an existing card ───────────────────────── */
 const cardPhotoInput = document.getElementById('cardPhotoInput');
 let pendingPhotoCardId      = null;
@@ -2686,19 +2990,32 @@ function openCardPhotoInput(id, section) {
 cardPhotoInput.addEventListener('change', async () => {
   const file = cardPhotoInput.files[0];
   if (!file || !pendingPhotoCardId) return;
-  try {
-    showToast('⏳ Обрабатываю изображение…');
-    const dataUrl = await compressImage(file);
-    const ok = savePhoto(pendingPhotoCardId, dataUrl);
-    if (ok) {
-      renderSection(pendingPhotoCardSection, true);
-      showToast('✅ Фото добавлено');
-    }
-  } catch (e) {
-    showToast('❌ Не удалось загрузить изображение');
-  }
-  pendingPhotoCardId      = null;
+  const id = pendingPhotoCardId;
+  const section = pendingPhotoCardSection;
+  pendingPhotoCardId = null;
   pendingPhotoCardSection = null;
+
+  try {
+    showToast('⏳ Загружаю фото…');
+    if (useDb && catalogLoaded) {
+      // Основной путь: Supabase Storage — фото станет видно всем устройствам
+      const res = await uploadProductPhotoToStorage(id, file);
+      if (!res.ok) {
+        showToast('❌ Не удалось загрузить: ' + res.error, 4000);
+        return;
+      }
+    } else {
+      // Fallback: старое поведение в localStorage (только этот браузер)
+      const dataUrl = await compressImage(file);
+      const ok = savePhoto(id, dataUrl);
+      if (!ok) return;
+    }
+    renderSection(section, true);
+    showToast('✅ Фото обновлено');
+  } catch (e) {
+    console.error('[photo upload]', e);
+    showToast('❌ Не удалось обработать изображение');
+  }
 });
 
 /* ═══════════════════════════════════════════════════════════════
@@ -2719,7 +3036,10 @@ function openAddModal(preselect) {
   afEmoji.focus();
 }
 
-/* Photo state for add form */
+/* Photo state for add form
+   addFormPhotoFile     — оригинальный File для загрузки в Supabase Storage
+   addFormPhotoDataUrl  — base64-копия для предпросмотра + fallback в localStorage */
+let addFormPhotoFile    = null;
 let addFormPhotoDataUrl = null;
 
 const afPhotoInput      = document.getElementById('af-photo');
@@ -2733,8 +3053,9 @@ async function handleAddFormPhoto(file) {
   try {
     showToast('⏳ Обрабатываю изображение…');
     const dataUrl = await compressImage(file);
+    addFormPhotoFile    = file;
     addFormPhotoDataUrl = dataUrl;
-    afPreviewImg.src   = dataUrl;
+    afPreviewImg.src    = dataUrl;
     afPreviewWrap.classList.add('show');
     afDropZone.style.display = 'none';
     showToast('✅ Фото готово к добавлению');
@@ -2758,6 +3079,7 @@ afDropZone.addEventListener('drop', e => {
 });
 
 afPhotoRemoveBtn.addEventListener('click', () => {
+  addFormPhotoFile    = null;
   addFormPhotoDataUrl = null;
   afPreviewImg.src    = '';
   afPreviewWrap.classList.remove('show');
@@ -2771,6 +3093,7 @@ function closeAddModal() {
   addForm.reset();
   emojiPreview.textContent = '🌸';
   // reset photo
+  addFormPhotoFile    = null;
   addFormPhotoDataUrl = null;
   afPreviewImg.src    = '';
   afPreviewWrap.classList.remove('show');
@@ -2847,14 +3170,26 @@ addForm.addEventListener('submit', async e => {
 
   const saved = await addProductToCatalog(newProduct);
 
-  if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Добавить в каталог'; }
-
-  if (!saved) return; // ошибка уже показана в toast
-
-  // Save photo if provided (фото пока локально, в следующей итерации перенесём в Storage)
-  if (addFormPhotoDataUrl) {
-    savePhoto(saved.id, addFormPhotoDataUrl);
+  if (!saved) {
+    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Добавить в каталог'; }
+    return; // ошибка уже показана в toast
   }
+
+  // Если приложили фото — грузим его в Storage (или в localStorage, если БД нет)
+  if (addFormPhotoFile) {
+    if (submitBtn) submitBtn.textContent = 'Загружаю фото…';
+    if (useDb && catalogLoaded) {
+      const r = await uploadProductPhotoToStorage(saved.id, addFormPhotoFile);
+      if (!r.ok) {
+        showToast('Товар добавлен, но фото не загрузилось: ' + r.error, 4000);
+      }
+    } else if (addFormPhotoDataUrl) {
+      // fallback — старое поведение
+      savePhoto(saved.id, addFormPhotoDataUrl);
+    }
+  }
+
+  if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Добавить в каталог'; }
 
   renderSection(section, true);
   switchTab(section);
