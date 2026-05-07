@@ -1440,9 +1440,20 @@
       /* Ничего не меняем — выше уже есть medias на .grid-3 */
 
       /* Карточка товара */
-      .card-body { padding: 20px 18px 18px; }
+      .card-body { padding: 18px 18px 16px; }
       .card-name { font-size: 1.1rem; }
       .card-desc { font-size: .9rem; line-height: 1.55; }
+
+      /* Ограничиваем высоту фото на мобильном — иначе одна карточка
+         занимает почти весь экран, и листать каталог неудобно */
+      .card-thumb {
+        aspect-ratio: 4/3;
+        max-height: 320px;
+      }
+      .card-thumb .thumb-img {
+        /* Дублируем в явном виде на случай старых версий iOS Safari */
+        top: 0; right: 0; bottom: 0; left: 0;
+      }
 
       /* Кнопка «В заказ» и контролы количества — больше tap-area */
       .btn-add {
@@ -1846,6 +1857,9 @@
         <input type="hidden" name="subject" value="Новый заказ — Цветочная планета" />
         <input type="hidden" name="from_name" value="Цветочная планета" />
         <input type="hidden" name="order" id="checkoutOrderField" value="" />
+        <!-- Honeypot: невидимо для людей, заполняется ботами. Если заполнено — заказ молча игнорируем. -->
+        <input type="text" name="website" id="co-honeypot" tabindex="-1" autocomplete="off" aria-hidden="true"
+               style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none" />
         <div class="field">
           <label for="co-name">Ваше имя *</label>
           <input type="text" id="co-name" name="name" placeholder="Александра" autocomplete="given-name" />
@@ -1913,6 +1927,9 @@
       <div class="modal-sub">Заявка отправится администратору. После одобрения вам пришлют логин и пароль.</div>
 
       <form id="requestForm" novalidate>
+        <!-- Honeypot для ботов (невидимо для людей) -->
+        <input type="text" id="req-honeypot" name="website" tabindex="-1" autocomplete="off" aria-hidden="true"
+               style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none" />
         <div class="field form-full">
           <label for="req-name">Ваше имя *</label>
           <input type="text" id="req-name" placeholder="Александра Петрова" />
@@ -2678,13 +2695,24 @@ const tabBtns   = document.querySelectorAll('.tab-btn');
 const tabPanels = document.querySelectorAll('.tab-panel');
 
 function switchTab(targetId) {
+  let activeBtn = null;
   tabBtns.forEach(b => {
     const active = b.dataset.tab === targetId;
     b.classList.toggle('active', active);
     b.setAttribute('aria-selected', String(active));
+    if (active) activeBtn = b;
   });
   tabPanels.forEach(p => p.classList.toggle('active', p.id === 'tab-' + targetId));
   window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  // На мобильных навигация скроллится горизонтально — обеспечим
+  // что активная кнопка точно видна в зоне просмотра.
+  if (activeBtn) {
+    try {
+      activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    } catch {}
+  }
+
   setTimeout(observeCards, 80);
 }
 
@@ -2854,8 +2882,16 @@ document.getElementById('requestForm').addEventListener('submit', async (e) => {
   const nameEl   = document.getElementById('req-name');
   const emailEl  = document.getElementById('req-email');
   const reasonEl = document.getElementById('req-reason');
+  const honeyEl  = document.getElementById('req-honeypot');
   const errBox   = document.getElementById('request-error');
   const submit   = document.getElementById('requestSubmit');
+
+  // Honeypot — бот заполняет, человек нет. Тихо принимаем (показываем «успех»).
+  if (honeyEl && honeyEl.value) {
+    showLoginView('success');
+    nameEl.value = ''; emailEl.value = ''; reasonEl.value = '';
+    return;
+  }
 
   errBox.hidden = true;
   let bad = false;
@@ -2883,7 +2919,8 @@ document.getElementById('requestForm').addEventListener('submit', async (e) => {
       });
     if (error) {
       console.error('[admin_requests] insert failed:', error);
-      errBox.textContent = 'Не удалось отправить заявку: ' + (error.message || 'ошибка сети');
+      const friendly = describeRateLimitError(error);
+      errBox.textContent = friendly || ('Не удалось отправить заявку: ' + (error.message || 'ошибка сети'));
       errBox.hidden = false;
       return;
     }
@@ -3809,14 +3846,59 @@ function openCheckout() {
 
 document.getElementById('cartBackBtn').addEventListener('click', () => showCartView('items'));
 
+/* ─── Anti-spam: cooldown между сабмитами ────────────────────── */
+const LS_LAST_ORDER_AT = 'fp_last_order_at';
+const ORDER_COOLDOWN_MS = 10000;  // 10 секунд между заказами с одного устройства
+
+function getLastOrderAt() {
+  return parseInt(localStorage.getItem(LS_LAST_ORDER_AT) || '0', 10);
+}
+function setLastOrderAt(t) {
+  localStorage.setItem(LS_LAST_ORDER_AT, String(t));
+}
+
+/** Распознать ошибку rate-limit от триггера в БД и вернуть человекочитаемое сообщение. */
+function describeRateLimitError(err) {
+  const msg  = (err && err.message) || '';
+  const hint = (err && err.hint) || '';
+  if (msg.includes('rate_limit_too_fast')) return 'Слишком частые попытки. Подождите 10 секунд между заказами.';
+  if (msg.includes('rate_limit_hourly'))   return 'Превышен лимит заказов с этого номера. Попробуйте через час или позвоните нам.';
+  if (msg.includes('rate_limit_daily'))    return 'С этого email уже отправлено несколько заявок. Попробуйте через 24 часа.';
+  if (msg.includes('customer_phone_format')) return 'Некорректный формат телефона.';
+  if (msg.includes('customer_name_length'))  return 'Имя слишком длинное (максимум 100 символов).';
+  if (msg.includes('customer_comment_length')) return 'Комментарий слишком длинный (максимум 2000 символов).';
+  if (msg.includes('items_size'))            return 'В корзине слишком много или 0 позиций.';
+  if (hint) return hint;
+  return null;  // не наша ошибка, пусть зовущий код разбирается
+}
+
 document.getElementById('checkoutForm').addEventListener('submit', async e => {
   e.preventDefault();
   const nameEl  = document.getElementById('co-name');
   const phoneEl = document.getElementById('co-phone');
   const commentEl = document.getElementById('co-comment');
+  const honeypotEl = document.getElementById('co-honeypot');
   const nameErr  = document.getElementById('co-name-err');
   const phoneErr = document.getElementById('co-phone-err');
   const btn = document.getElementById('checkoutSubmitBtn');
+
+  // Honeypot — если поле заполнено, это бот. Делаем вид что всё ок и тихо игнорим.
+  if (honeypotEl && honeypotEl.value) {
+    saveCart([]);
+    updateCartBadge();
+    syncAllCardFooters();
+    document.getElementById('checkoutForm').style.display    = 'none';
+    document.getElementById('checkoutSuccess').style.display = '';
+    return;
+  }
+
+  // Cooldown — не более одного заказа с устройства раз в 10 секунд
+  const sinceLast = Date.now() - getLastOrderAt();
+  if (sinceLast < ORDER_COOLDOWN_MS) {
+    const sec = Math.ceil((ORDER_COOLDOWN_MS - sinceLast) / 1000);
+    showToast(`Подождите ${sec} сек перед следующим заказом`);
+    return;
+  }
 
   let ok = true;
   if (!nameEl.value.trim())       { nameEl.classList.add('error');  nameErr.classList.add('show');  ok = false; }
@@ -3849,11 +3931,13 @@ document.getElementById('checkoutForm').addEventListener('submit', async e => {
 
   // 1. Пишем в Supabase. Это основной канал — заказ должен попасть в админку.
   let dbOk = false;
+  let dbError = null;
   if (supabase) {
     const result = await saveOrderToDb(orderPayload);
     dbOk = result.ok;
     if (!dbOk) {
-      console.error('[checkout] DB save failed:', result.error);
+      dbError = result.error;
+      console.error('[checkout] DB save failed:', dbError);
     }
   }
 
@@ -3866,14 +3950,17 @@ document.getElementById('checkoutForm').addEventListener('submit', async e => {
   if (supabase && !dbOk) {
     btn.disabled = false;
     btn.textContent = 'Отправить заказ';
-    showToast('Не удалось оформить заказ. Попробуйте ещё раз или позвоните нам.');
+    // Превращаем технические ошибки rate-limit/констрейнтов в понятный текст
+    const friendly = describeRateLimitError({ message: dbError || '' });
+    showToast(friendly || 'Не удалось оформить заказ. Попробуйте ещё раз или позвоните нам.', 4000);
     return;
   }
   // Если supabase не настроен — считаем успехом отправку email через web3forms (старое поведение)
 
+  setLastOrderAt(Date.now());          // фиксируем cooldown
   saveCart([]);
   updateCartBadge();
-  syncAllCardFooters();   // вернуть все карточки в состояние «В заказ»
+  syncAllCardFooters();                // вернуть все карточки в состояние «В заказ»
   document.getElementById('checkoutForm').style.display   = 'none';
   document.getElementById('checkoutSuccess').style.display = '';
 });
@@ -3896,6 +3983,12 @@ document.getElementById('checkoutForm').addEventListener('submit', async e => {
   updateCartBadge();
   observeCards();
   bindOrdersUI();
+
+  // На мобильном — прокрутить активную вкладку в зону видимости горизонтального скролла.
+  const activeBtn = document.querySelector('.tab-btn.active');
+  if (activeBtn) {
+    try { activeBtn.scrollIntoView({ block: 'nearest', inline: 'center' }); } catch {}
+  }
 
   // 3. Если рендерили из кэша — теперь обновляем свежими данными в фоне.
   //    Когда придут — перерисуем (изменения видны через 1-2 секунды).
