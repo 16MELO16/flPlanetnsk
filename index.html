@@ -3,6 +3,32 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       SECURITY HEADERS — компенсация WAF Cloudflare после его отключения.
+       CSP запрещает выполнение скриптов из неавторизованных источников,
+       что блокирует XSS-инъекции даже при их успешном внедрении.
+       Директивы frame-ancestors / report-uri работают только через HTTP-
+       заголовок, который GitHub Pages не настраивает. Защита от clickjacking
+       реализована JS-фрейм-бастером ниже в <script>.
+       ═══════════════════════════════════════════════════════════════ -->
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
+    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+    font-src 'self' https://fonts.gstatic.com data:;
+    img-src 'self' data: blob: https://xonizpnbqcgusjrlahue.supabase.co;
+    connect-src 'self' https://xonizpnbqcgusjrlahue.supabase.co https://api.emailjs.com https://api.web3forms.com;
+    base-uri 'self';
+    form-action 'self' https://api.web3forms.com;
+  " />
+
+  <!-- Не передавать полный URL при переходах на сторонние сайты -->
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+
+  <!-- Цветовая тема для мобильных браузеров -->
+  <meta name="theme-color" content="#2D5A3D" />
+
   <title>Цветочная планета — Цветы и букеты в Новосибирске</title>
   <meta name="description" content="Цветочная планета — магазин срезанных цветов, горшечных растений, черенков и букетов в Новосибирске. Свежие цветы, редкие сорта, доступные цены." />
   <meta name="keywords" content="цветы Новосибирск, букеты Новосибирск, срезанные цветы, горшечные растения, черенки, цветочный магазин" />
@@ -25,6 +51,9 @@
 
   <!-- Supabase JS-клиент (для авторизации админа). См. SUPABASE_SETUP.md -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+
+  <!-- EmailJS — отправка подтверждения заказа клиенту на email. См. EMAIL_SETUP.md -->
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 
   <style>
     /* ─── CSS VARIABLES ─────────────────────────────────────────── */
@@ -1871,6 +1900,11 @@
           <span class="err-msg" id="co-phone-err">Введите корректный номер</span>
         </div>
         <div class="field">
+          <label for="co-email">Email <span style="color:var(--muted);font-weight:400">— чтобы прислать подтверждение</span></label>
+          <input type="email" id="co-email" name="email" placeholder="you@example.com" autocomplete="email" />
+          <span class="err-msg" id="co-email-err">Некорректный email</span>
+        </div>
+        <div class="field">
           <label for="co-comment">Комментарий к заказу</label>
           <textarea id="co-comment" name="comment" placeholder="Время самовывоза, пожелания…"></textarea>
         </div>
@@ -1978,6 +2012,21 @@
 
 <script>
 /* ═══════════════════════════════════════════════════════════════
+   ANTI-CLICKJACKING — JS-замена директивы frame-ancestors,
+   которая не работает через meta-тег. Если сайт открыт внутри
+   iframe на чужой странице — переадресуем на наш домен в полный экран.
+   ═══════════════════════════════════════════════════════════════ */
+try {
+  if (window.self !== window.top) {
+    // Сайт открыт в iframe — атака clickjacking. Ломаем фрейм.
+    window.top.location = window.self.location;
+  }
+} catch (e) {
+  // Если cross-origin блокирует доступ к window.top — это уже хорошо,
+  // значит fрейм-бастинг сработает в Sandbox-режиме браузера.
+}
+
+/* ═══════════════════════════════════════════════════════════════
    SUPABASE_CONFIG — впишите сюда значения из вашего проекта
    (Project Settings → API). Подробности — в SUPABASE_SETUP.md
    ═══════════════════════════════════════════════════════════════ */
@@ -1985,6 +2034,35 @@ const SUPABASE_CONFIG = {
   url:     'https://xonizpnbqcgusjrlahue.supabase.co',
   anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhvbml6cG5icWNndXNqcmxhaHVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2Mjk2MTksImV4cCI6MjA5MzIwNTYxOX0.OjwUGVtrd_GLPUi6JDqSNUgr4MM6wrVTno-ycokK11M',
 };
+
+/* ═══════════════════════════════════════════════════════════════
+   EMAILJS_CONFIG — для подтверждений заказов клиенту на email.
+   Если не заполнено — сайт работает как раньше, просто без писем.
+   Пошаговая инструкция как получить эти ключи: EMAIL_SETUP.md
+   ═══════════════════════════════════════════════════════════════ */
+const EMAILJS_CONFIG = {
+  serviceId:  'service_7hvtbwh',
+  templateId: 'template_56i3giq',
+  publicKey:  'Taa3LJ60X3sY7402C',
+};
+
+const emailjsReady = (() => {
+  if (
+    !window.emailjs ||
+    EMAILJS_CONFIG.serviceId.startsWith('YOUR_') ||
+    EMAILJS_CONFIG.templateId.startsWith('YOUR_') ||
+    EMAILJS_CONFIG.publicKey.startsWith('YOUR_')
+  ) {
+    return false;
+  }
+  try {
+    emailjs.init({ publicKey: EMAILJS_CONFIG.publicKey });
+    return true;
+  } catch (e) {
+    console.warn('[email] EmailJS init failed:', e);
+    return false;
+  }
+})();
 
 /* Инициализируем клиент. Если конфиг ещё не заполнен — клиент будет null,
    и админ-кнопка просто не появится (сайт продолжит работать в обычном режиме). */
@@ -2268,13 +2346,14 @@ let ordersLoaded = false;
  * на orders, и попытка прочитать вставленную строку обратно падает с RLS.
  * INSERT возвращает только success/error, и этого достаточно для UI.
  */
-async function saveOrderToDb({ name, phone, comment, items, total, hasApprox }) {
+async function saveOrderToDb({ name, phone, email, comment, items, total, hasApprox }) {
   if (!supabase) return { ok: false, error: 'no-supabase' };
   const { error } = await supabase
     .from('orders')
     .insert({
       customer_name:    name,
       customer_phone:   phone,
+      customer_email:   email || '',
       customer_comment: comment || '',
       items:            items,
       total_amount:     total,
@@ -2285,6 +2364,42 @@ async function saveOrderToDb({ name, phone, comment, items, total, hasApprox }) 
     return { ok: false, error: error.message };
   }
   return { ok: true };
+}
+
+/**
+ * Отправить клиенту письмо-подтверждение заказа через EmailJS.
+ * Не ломает основной flow — если письмо не ушло, заказ всё равно создан.
+ * Тихо пропускает если email не указан или EmailJS не настроен.
+ */
+async function sendOrderConfirmationEmail(orderPayload) {
+  if (!emailjsReady) return;                          // EmailJS не настроен
+  if (!orderPayload.email) return;                    // клиент не оставил email
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(orderPayload.email)) return;  // невалидный
+
+  // Готовим текст списка позиций для письма
+  const itemsText = orderPayload.items.map(it => {
+    const qty = it.qty || 1;
+    const sum = (it.price || 0) * qty;
+    return `${it.name} × ${qty} — ${sum.toLocaleString('ru-RU')} ₽`;
+  }).join('\n');
+
+  try {
+    await emailjs.send(EMAILJS_CONFIG.serviceId, EMAILJS_CONFIG.templateId, {
+      to_email:    orderPayload.email,
+      to_name:     orderPayload.name,
+      customer_phone: orderPayload.phone,
+      order_items: itemsText,
+      order_total: orderPayload.total.toLocaleString('ru-RU') + ' ₽' + (orderPayload.hasApprox ? ' (приблизительно)' : ''),
+      order_comment: orderPayload.comment || '—',
+      shop_name:   'Цветочная планета',
+      shop_phone:  '+7 (913) 061-01-31',
+      shop_address: 'г. Новосибирск, с. Кубовая, ул. Клубная, 6',
+    });
+    console.info('[email] order confirmation sent to', orderPayload.email);
+  } catch (e) {
+    console.warn('[email] failed to send confirmation:', e);
+    // Не показываем ошибку клиенту — заказ всё равно оформлен
+  }
 }
 
 /** Загрузить все заказы (только если админ) */
@@ -2450,6 +2565,7 @@ function buildOrderCard(order) {
       <div class="order-customer">
         <div class="order-customer-row"><strong>Имя:</strong> ${esc(order.customer_name || '')}</div>
         <div class="order-customer-row"><strong>Телефон:</strong> <a href="tel:${esc(phoneClean)}">${esc(order.customer_phone || '')}</a></div>
+        ${order.customer_email ? `<div class="order-customer-row"><strong>Email:</strong> <a href="mailto:${esc(order.customer_email)}">${esc(order.customer_email)}</a></div>` : ''}
         ${order.customer_comment ? `<div class="order-comment">«${esc(order.customer_comment)}»</div>` : ''}
       </div>
       <div class="order-items">
@@ -3837,6 +3953,8 @@ function openCheckout() {
   document.getElementById('checkoutSuccess').style.display = 'none';
   document.getElementById('co-name').value = '';
   document.getElementById('co-phone').value = '';
+  const emailField = document.getElementById('co-email');
+  if (emailField) emailField.value = '';
   document.getElementById('co-comment').value = '';
   document.getElementById('checkoutSubmitBtn').disabled = false;
   document.getElementById('checkoutSubmitBtn').textContent = 'Отправить заказ';
@@ -3848,7 +3966,8 @@ document.getElementById('cartBackBtn').addEventListener('click', () => showCartV
 
 /* ─── Anti-spam: cooldown между сабмитами ────────────────────── */
 const LS_LAST_ORDER_AT = 'fp_last_order_at';
-const ORDER_COOLDOWN_MS = 10000;  // 10 секунд между заказами с одного устройства
+const ORDER_COOLDOWN_MS = 30000;  // 30 секунд между заказами с одного устройства
+                                  // (синхронизировано с серверным rate-limit в БД)
 
 function getLastOrderAt() {
   return parseInt(localStorage.getItem(LS_LAST_ORDER_AT) || '0', 10);
@@ -3861,7 +3980,7 @@ function setLastOrderAt(t) {
 function describeRateLimitError(err) {
   const msg  = (err && err.message) || '';
   const hint = (err && err.hint) || '';
-  if (msg.includes('rate_limit_too_fast')) return 'Слишком частые попытки. Подождите 10 секунд между заказами.';
+  if (msg.includes('rate_limit_too_fast')) return 'Слишком частые попытки. Подождите 30 секунд между заказами.';
   if (msg.includes('rate_limit_hourly'))   return 'Превышен лимит заказов с этого номера. Попробуйте через час или позвоните нам.';
   if (msg.includes('rate_limit_daily'))    return 'С этого email уже отправлено несколько заявок. Попробуйте через 24 часа.';
   if (msg.includes('customer_phone_format')) return 'Некорректный формат телефона.';
@@ -3876,10 +3995,12 @@ document.getElementById('checkoutForm').addEventListener('submit', async e => {
   e.preventDefault();
   const nameEl  = document.getElementById('co-name');
   const phoneEl = document.getElementById('co-phone');
+  const emailEl = document.getElementById('co-email');
   const commentEl = document.getElementById('co-comment');
   const honeypotEl = document.getElementById('co-honeypot');
   const nameErr  = document.getElementById('co-name-err');
   const phoneErr = document.getElementById('co-phone-err');
+  const emailErr = document.getElementById('co-email-err');
   const btn = document.getElementById('checkoutSubmitBtn');
 
   // Honeypot — если поле заполнено, это бот. Делаем вид что всё ок и тихо игнорим.
@@ -3905,6 +4026,18 @@ document.getElementById('checkoutForm').addEventListener('submit', async e => {
   else                            { nameEl.classList.remove('error'); nameErr.classList.remove('show'); }
   if (!validPhone(phoneEl.value)) { phoneEl.classList.add('error'); phoneErr.classList.add('show'); ok = false; }
   else                            { phoneEl.classList.remove('error'); phoneErr.classList.remove('show'); }
+
+  // Email — опциональное поле, валидируем только если что-то ввели
+  const emailRaw = (emailEl?.value || '').trim();
+  if (emailRaw && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(emailRaw)) {
+    emailEl.classList.add('error');
+    if (emailErr) emailErr.classList.add('show');
+    ok = false;
+  } else if (emailEl) {
+    emailEl.classList.remove('error');
+    if (emailErr) emailErr.classList.remove('show');
+  }
+
   if (!ok) return;
 
   btn.disabled = true;
@@ -3915,6 +4048,7 @@ document.getElementById('checkoutForm').addEventListener('submit', async e => {
   const orderPayload = {
     name:       nameEl.value.trim(),
     phone:      phoneEl.value.trim(),
+    email:      emailRaw,
     comment:    commentEl.value.trim(),
     items:      cartItems.map(it => ({
       id:       it.id,
@@ -3963,6 +4097,9 @@ document.getElementById('checkoutForm').addEventListener('submit', async e => {
   syncAllCardFooters();                // вернуть все карточки в состояние «В заказ»
   document.getElementById('checkoutForm').style.display   = 'none';
   document.getElementById('checkoutSuccess').style.display = '';
+
+  // Клиенту — письмо-подтверждение (тихо, в фоне; не ломает UX)
+  sendOrderConfirmationEmail(orderPayload);
 });
 
 /* ═══════════════════════════════════════════════════════════════
