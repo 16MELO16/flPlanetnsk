@@ -1,11 +1,8 @@
--- ════════════════════════════════════════════════════════════════
 -- 001_create_products.sql
--- Создаёт таблицу products, RLS-политики и заливает начальный каталог.
--- Запуск: Supabase → SQL Editor → New query → вставить → Run.
--- Безопасно перезапускать (использует if not exists / on conflict).
--- ════════════════════════════════════════════════════════════════
+-- Core catalog table + seed data.
 
--- ─── 1. Таблица ─────────────────────────────────────────────────
+create extension if not exists pgcrypto;
+
 create table if not exists products (
   id           text        primary key,
   section      text        not null check (section in ('cut','pot','cuttings','bouquets')),
@@ -27,7 +24,6 @@ create table if not exists products (
 create index if not exists products_section_sort_idx
   on products (section, sort_order);
 
--- ─── 2. Auto-update updated_at ─────────────────────────────────
 create or replace function set_updated_at()
 returns trigger as $$
 begin
@@ -41,41 +37,7 @@ create trigger products_updated_at
   before update on products
   for each row execute function set_updated_at();
 
--- ─── 3. Row Level Security ─────────────────────────────────────
-alter table products enable row level security;
-
--- Каталог читают все (включая анонимных посетителей сайта)
-drop policy if exists "Public read products" on products;
-create policy "Public read products"
-  on products
-  for select
-  using (true);
-
--- Менять каталог могут только авторизованные пользователи (админы)
-drop policy if exists "Authenticated insert products" on products;
-create policy "Authenticated insert products"
-  on products
-  for insert
-  to authenticated
-  with check (true);
-
-drop policy if exists "Authenticated update products" on products;
-create policy "Authenticated update products"
-  on products
-  for update
-  to authenticated
-  using (true)
-  with check (true);
-
-drop policy if exists "Authenticated delete products" on products;
-create policy "Authenticated delete products"
-  on products
-  for delete
-  to authenticated
-  using (true);
-
--- ─── 4. Начальный каталог ──────────────────────────────────────
--- Срезанные цветы
+-- Seed catalog
 insert into products (id, section, emoji, bg, badge, name1, name2, latin, description, price, unit, sort_order) values
   ('cut-1','cut','🌹','🌹','hit', 'Роза','садовая','Rosa × hybrida','Классика флористики. Бархатные лепестки, устойчивый аромат, стебель 60–70 см.','220 ₽','/ шт',1),
   ('cut-2','cut','🌸','🌸','rare','Пион','садовый','Paeonia lactiflora','Сезонный фаворит с пышными махровыми цветами и сладким ароматом.','380 ₽','/ шт',2),
@@ -87,7 +49,6 @@ insert into products (id, section, emoji, bg, badge, name1, name2, latin, descri
   ('cut-8','cut','🌷','💜','new', 'Ирис','голландский','Iris × hollandica','Нежная фиолетовая гамма. Изысканная геометрия лепестков, лёгкий аромат.','175 ₽','/ шт',8)
 on conflict (id) do nothing;
 
--- Горшечные растения
 insert into products (id, section, emoji, bg, badge, name1, name2, latin, description, price, unit, sort_order) values
   ('pot-1','pot','🌿','🌿','hit', 'Монстера','деликатная','Monstera deliciosa','Тропическая икона с резными листьями. Горшок Ø17 см, высота 55 см.','1 490 ₽','',1),
   ('pot-2','pot','🌸','🌸',null,  'Спатифиллум','','Spathiphyllum wallisii','«Женское счастье» — цветёт белыми парусами, очищает воздух. Горшок Ø14.','690 ₽','',2),
@@ -99,7 +60,6 @@ insert into products (id, section, emoji, bg, badge, name1, name2, latin, descri
   ('pot-8','pot','🌵','🌵',null,  'Сансевиерия','','Sansevieria trifasciata','«Тёщин язык» — почти нетребователен к уходу, мощный очиститель воздуха.','550 ₽','',8)
 on conflict (id) do nothing;
 
--- Черенки и саженцы
 insert into products (id, section, emoji, bg, badge, name1, name2, latin, description, price, unit, sort_order) values
   ('cut2-1','cuttings','🌸','🌸','hit', 'Бегония','черенок','Begonia rex hybrid','Укоренённый черенок в стакане. Пёстрые листья-картины, быстрый рост.','250 ₽','',1),
   ('cut2-2','cuttings','🍃','🍃','hit', 'Потос','золотой','Epipremnum aureum','Классика для новичков. Черенок с 3–4 листьями, корни уже развиты.','180 ₽','',2),
@@ -111,7 +71,6 @@ insert into products (id, section, emoji, bg, badge, name1, name2, latin, descri
   ('cut2-8','cuttings','🪨','🌵','hit', 'Эхеверия','розетка','Echeveria elegans','Каменная роза из суккулентов. Детка с корнями, 5–7 см в диаметре.','190 ₽','',8)
 on conflict (id) do nothing;
 
--- Букеты и композиции
 insert into products (id, section, emoji, bg, badge, name1, name2, comp, description, price, unit, sort_order) values
   ('bouq-1','bouquets','💍','💐','hit', 'Свадебный','букет невесты','белые пионы, эустома, гринери, лента атласная','Нежная классика для особенного дня. Индивидуальная сборка под платье.','6 500 ₽','',1),
   ('bouq-2','bouquets','🌸','🌸','rare','Монобукет','из пионов','25 пионов сортовых, упаковка крафт, рафия','Роскошный объём из одного цветка — эффект максимальный, вкус безупречный.','9 500 ₽','',2),
@@ -120,7 +79,3 @@ insert into products (id, section, emoji, bg, badge, name1, name2, comp, descrip
   ('bouq-5','bouquets','🌷','🌷',null,  'Весенний','микс','тюльпаны, нарциссы, мускари, веточки сирени, зелень','Ароматная весна в руках. Сборный букет из лучших сезонных цветов.','3 400 ₽','',5),
   ('bouq-6','bouquets','🌿','🎨','new', 'Авторская','композиция','подбор флориста по сезону и вашему запросу','Уникальная работа нашего флориста: от концепции до каждого стебля. Нет двух одинаковых.','от 5 000 ₽','',6)
 on conflict (id) do nothing;
-
--- ─── 5. Проверка ──────────────────────────────────────────────
--- Должно вернуть 30 (8 + 8 + 8 + 6)
-select section, count(*) from products group by section order by section;
