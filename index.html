@@ -17,7 +17,7 @@
     script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
     font-src 'self' https://fonts.gstatic.com data:;
-    img-src 'self' data: blob: https://xonizpnbqcgusjrlahue.supabase.co;
+    img-src 'self' data: blob: https://xonizpnbqcgusjrlahue.supabase.co https://images.weserv.nl;
     connect-src 'self' https://xonizpnbqcgusjrlahue.supabase.co https://api.emailjs.com https://api.web3forms.com;
     base-uri 'self';
     form-action 'self' https://api.web3forms.com;
@@ -439,6 +439,11 @@
       justify-content: center;
       pointer-events: none;
       filter: blur(2px);
+    }
+    .card-thumb .thumb-emoji {
+      position: relative;
+      z-index: 1;
+      pointer-events: none;
     }
     .thumb-cut  { background: linear-gradient(135deg, #fdf3ee 0%, #f7e6dd 100%); }
     .thumb-pot  { background: linear-gradient(135deg, #eef5ee 0%, #ddeedd 100%); }
@@ -2038,6 +2043,9 @@ const SUPABASE_CONFIG = {
   storagePublicBaseUrl: '',
 };
 
+// Публичный image-proxy для подмены, если Storage блокируется сетью.
+const IMAGE_PROXY_BASE = 'https://images.weserv.nl/?url=';
+
 /* ═══════════════════════════════════════════════════════════════
    EMAILJS_CONFIG — для подтверждений заказов клиенту на email.
    Если не заполнено — сайт работает как раньше, просто без писем.
@@ -2208,6 +2216,50 @@ function dbRowToJs(row) {
     unit:  row.unit || '',
     photo_url: normalizePhotoUrl(row.photo_url) || null,
   };
+}
+
+function toProxyImageUrl(url) {
+  if (!url) return null;
+  try {
+    const u = new URL(url);
+    const clean = `${u.host}${u.pathname}${u.search}`;
+    return IMAGE_PROXY_BASE + encodeURIComponent(clean);
+  } catch { return null; }
+}
+
+function fallbackThumbToEmoji(imgEl) {
+  const thumb = imgEl.closest('.card-thumb');
+  if (!thumb || thumb.querySelector('.thumb-emoji')) return;
+  const emoji = thumb.dataset.emoji || '🌸';
+  const bg = thumb.dataset.bg || emoji;
+  imgEl.remove();
+  thumb.classList.remove('has-photo');
+  const leaf = document.createElement('div');
+  leaf.className = 'leaf-bg';
+  leaf.textContent = bg;
+  const emojiEl = document.createElement('span');
+  emojiEl.className = 'thumb-emoji';
+  emojiEl.textContent = emoji;
+  thumb.insertBefore(leaf, thumb.firstChild);
+  thumb.insertBefore(emojiEl, leaf.nextSibling);
+}
+
+function bindCardImageFallbacks(scope) {
+  (scope || document).querySelectorAll('img.thumb-img').forEach(img => {
+    if (img.dataset.proxyBound) return;
+    img.dataset.proxyBound = '1';
+    img.addEventListener('error', () => {
+      if (img.dataset.proxyTried !== '1') {
+        const proxied = toProxyImageUrl(img.currentSrc || img.src);
+        if (proxied) {
+          img.dataset.proxyTried = '1';
+          img.src = proxied;
+          return;
+        }
+      }
+      fallbackThumbToEmoji(img);
+    });
+  });
 }
 function jsToDbRow(p) {
   return {
@@ -2696,7 +2748,7 @@ function buildCardHTML(p, section) {
     <div class="card" data-id="${esc(p.id)}" data-section="${esc(section)}">
       <button class="btn-delete-card" aria-label="Удалить карточку" title="Удалить">✕</button>
       ${badgeHTML}
-      <div class="card-thumb ${thumbClass}${hasPhoto ? ' has-photo' : ''}">
+      <div class="card-thumb ${thumbClass}${hasPhoto ? ' has-photo' : ''}" data-emoji="${esc(p.emoji)}" data-bg="${esc(p.bg || p.emoji)}">
         ${thumbInner}
         <button class="btn-photo-card" aria-label="Изменить фото" title="Добавить / изменить фото">📷</button>
         <button class="btn-remove-photo" aria-label="Удалить фото" title="Удалить фото">✕</button>
@@ -2737,6 +2789,8 @@ function renderSection(section, instant = false) {
   let html = products.map(p => buildCardHTML(p, section)).join('');
   html += buildAddCardHTML(section);
   grid.innerHTML = html;
+
+  bindCardImageFallbacks(grid);
 
   // Bind delete buttons
   grid.querySelectorAll('.btn-delete-card').forEach(btn => {
