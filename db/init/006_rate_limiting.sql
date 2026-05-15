@@ -1,14 +1,5 @@
--- ════════════════════════════════════════════════════════════════
 -- 006_rate_limiting.sql
--- Защита от спама и атак: триггеры rate-limit на orders и admin_requests,
--- CHECK-констрейнты на длину/формат полей.
---
--- Запуск: Supabase → SQL Editor → New query → вставить → Run.
--- Безопасно перезапускать.
--- ════════════════════════════════════════════════════════════════
 
--- ─── 1. Констрейнты на orders ──────────────────────────────────
--- Снимаем старые если они есть, чтобы можно было перезапускать
 alter table orders drop constraint if exists customer_name_length;
 alter table orders drop constraint if exists customer_phone_format;
 alter table orders drop constraint if exists customer_comment_length;
@@ -23,22 +14,17 @@ alter table orders add constraint customer_phone_format
 alter table orders add constraint customer_comment_length
   check (char_length(customer_comment) <= 2000);
 
--- Корзина не может быть гигантским JSON (защита от DoS)
 alter table orders add constraint items_size
   check (jsonb_array_length(items) between 1 and 100);
 
--- ─── 2. Rate-limit триггер на orders ───────────────────────────
 create or replace function check_order_rate_limit()
 returns trigger
 language plpgsql
-security definer
-set search_path = public
 as $$
 declare
   recent_count int;
   last_at timestamptz;
 begin
-  -- Анти-флуд: между двумя заказами с одного номера ≥ 10 секунд
   select max(created_at) into last_at
   from orders
   where customer_phone = new.customer_phone;
@@ -49,7 +35,6 @@ begin
             hint    = 'Подождите 10 секунд перед следующим заказом.';
   end if;
 
-  -- Анти-спам: не более 5 заказов с одного номера за час
   select count(*) into recent_count
   from orders
   where customer_phone = new.customer_phone
@@ -70,16 +55,12 @@ create trigger orders_rate_limit
   before insert on orders
   for each row execute function check_order_rate_limit();
 
--- ─── 3-4. Защита для admin_requests (если таблица существует) ─
--- Если миграция 003 ещё не запускалась — этот блок просто пропускается
--- и не валит всю миграцию.
 do $$
 begin
   if exists (
     select 1 from information_schema.tables
     where table_schema = 'public' and table_name = 'admin_requests'
   ) then
-    -- 3. Констрейнты на admin_requests
     alter table admin_requests drop constraint if exists req_name_length;
     alter table admin_requests drop constraint if exists req_email_format;
     alter table admin_requests drop constraint if exists req_reason_length;
@@ -93,12 +74,9 @@ begin
     alter table admin_requests add constraint req_reason_length
       check (char_length(reason) <= 1000);
 
-    -- 4. Rate-limit функция и триггер на admin_requests
     create or replace function check_admin_request_rate_limit()
     returns trigger
     language plpgsql
-    security definer
-    set search_path = public
     as $func$
     declare
       recent_count int;
@@ -121,16 +99,5 @@ begin
     create trigger admin_requests_rate_limit
       before insert on admin_requests
       for each row execute function check_admin_request_rate_limit();
-
-    raise notice 'admin_requests: ограничения и rate-limit триггер установлены';
-  else
-    raise notice 'Таблица admin_requests не найдена — пропускаем эту часть. Запустите миграцию 003, если нужна функция «Запросить доступ».';
   end if;
 end $$;
-
--- ─── 5. Проверка ───────────────────────────────────────────────
--- Список всех триггеров на наших таблицах
-select event_object_table as table_name, trigger_name, event_manipulation, action_timing
-from information_schema.triggers
-where event_object_table in ('orders', 'admin_requests', 'products')
-order by event_object_table, trigger_name;

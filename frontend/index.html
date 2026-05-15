@@ -17,7 +17,7 @@
     script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
     font-src 'self' https://fonts.gstatic.com data:;
-    img-src 'self' data: blob: https://xonizpnbqcgusjrlahue.supabase.co;
+    img-src 'self' data: blob: https://xonizpnbqcgusjrlahue.supabase.co https://images.weserv.nl;
     connect-src 'self' https://xonizpnbqcgusjrlahue.supabase.co https://api.emailjs.com https://api.web3forms.com;
     base-uri 'self';
     form-action 'self' https://api.web3forms.com;
@@ -38,10 +38,10 @@
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Цветочная планета — Цветы и букеты в Новосибирске" />
   <meta property="og:description" content="Срезанные цветы, горшечные растения, черенки и букеты. Свежие цветы, редкие сорта, доступные цены." />
-  <meta property="og:image" content="logo.png" />
+  <meta property="og:image" content="/static/logo.png" />
   <meta property="og:locale" content="ru_RU" />
 
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌸</text></svg>" />
+  <link rel="icon" type="image/png" href="/static/logo.png" />
   <!-- Preconnect к Supabase: DNS+TLS до начала парсинга JS, экономия 100-300мс на мобильном -->
   <link rel="preconnect" href="https://xonizpnbqcgusjrlahue.supabase.co" crossorigin />
   <link rel="dns-prefetch" href="https://xonizpnbqcgusjrlahue.supabase.co" />
@@ -393,16 +393,15 @@
     .badge-rare { background: var(--emerald); color: #fff; }
     .badge-new  { background: #7b5e3a; color: #fff; }
 
-    /* ─── DELETE BUTTON (admin) ─────────────────────────────────── */
-    .btn-delete-card {
+    /* ─── CARD ADMIN BUTTONS ────────────────────────────────────── */
+    .btn-delete-card,
+    .btn-edit-card {
       position: absolute;
       top: 10px;
-      left: 10px;
       z-index: 10;
       width: 32px;
       height: 32px;
       border-radius: 50%;
-      background: var(--danger);
       color: #fff;
       border: 2px solid #fff;
       font-size: 1rem;
@@ -411,11 +410,22 @@
       display: none;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 2px 8px rgba(192,57,43,.4);
       transition: background var(--tr), transform var(--tr);
     }
+    .btn-delete-card {
+      left: 10px;
+      background: var(--danger);
+      box-shadow: 0 2px 8px rgba(192,57,43,.4);
+    }
+    .btn-edit-card {
+      left: 48px;
+      background: var(--emerald);
+      box-shadow: 0 2px 8px rgba(45,90,61,.35);
+    }
     .btn-delete-card:hover { background: var(--danger-light); transform: scale(1.12); }
+    .btn-edit-card:hover { background: var(--emerald-light); transform: scale(1.12); }
     body.edit-mode .btn-delete-card { display: flex; }
+    body.edit-mode .btn-edit-card { display: flex; }
 
     /* Card illustration */
     .card-thumb {
@@ -439,6 +449,11 @@
       justify-content: center;
       pointer-events: none;
       filter: blur(2px);
+    }
+    .card-thumb .thumb-emoji {
+      position: relative;
+      z-index: 1;
+      pointer-events: none;
     }
     .thumb-cut  { background: linear-gradient(135deg, #fdf3ee 0%, #f7e6dd 100%); }
     .thumb-pot  { background: linear-gradient(135deg, #eef5ee 0%, #ddeedd 100%); }
@@ -1565,7 +1580,7 @@
   <div class="header-inner">
     <div class="header-top">
       <a class="logo" href="#">
-        <img src="logo.png" alt="Цветочная планета" class="logo-icon" style="width:52px;height:52px;object-fit:cover;object-position:top center;background:none;border-radius:50%;" />
+        <img src="/static/logo.png" alt="Цветочная планета" class="logo-icon" style="width:52px;height:52px;object-fit:cover;object-position:top center;background:none;border-radius:50%;" />
         <div class="logo-text">
           Цветочная планета
           <span>Ботанический каталог · Новосибирск</span>
@@ -1749,8 +1764,8 @@
 <div class="modal-overlay" id="addModal" hidden>
   <div class="modal-box">
     <button class="modal-close" id="addModalClose" aria-label="Закрыть">✕</button>
-    <div class="modal-title">Новая позиция</div>
-    <div class="modal-sub">Заполните поля — карточка появится в выбранном разделе</div>
+    <div class="modal-title" id="addModalTitle">Новая позиция</div>
+    <div class="modal-sub" id="addModalSub">Заполните поля — карточка появится в выбранном разделе</div>
 
     <form id="addForm" novalidate>
       <div class="form-grid">
@@ -1837,7 +1852,7 @@
       </div>
       <div class="modal-actions">
         <button type="button" class="btn-secondary" id="addFormCancel">Отмена</button>
-        <button type="submit" class="btn-primary">Добавить в каталог</button>
+        <button type="submit" class="btn-primary" id="addFormSubmit">Добавить в каталог</button>
       </div>
     </form>
   </div>
@@ -1850,7 +1865,7 @@
     <div class="del-title">Удалить позицию?</div>
     <div class="del-desc">Вы удаляете:</div>
     <div class="del-name" id="del-card-name">—</div>
-    <p style="font-size:.82rem;color:var(--muted);margin-top:8px">Это действие можно отменить, нажав «Восстановить всё» в меню редактирования</p>
+    <p style="font-size:.82rem;color:var(--muted);margin-top:8px">Позиция будет удалена из базы данных.</p>
     <div class="del-actions">
       <button class="btn-secondary" id="delCancel" style="flex:1">Оставить</button>
       <button class="btn-danger" id="delConfirm" style="flex:1;margin-top:0;padding:13px 20px">Удалить</button>
@@ -2034,9 +2049,30 @@ const SUPABASE_CONFIG = {
   // Если .supabase.co недоступен в РФ, укажите тут домен-прокси (например, api.flower-planet-nsk.ru).
   url:     'https://xonizpnbqcgusjrlahue.supabase.co',
   anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhvbml6cG5icWNndXNqcmxhaHVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2Mjk2MTksImV4cCI6MjA5MzIwNTYxOX0.OjwUGVtrd_GLPUi6JDqSNUgr4MM6wrVTno-ycokK11M',
-  // Опционально: отдельный домен-прокси именно для Storage (если отличается от url).
+  // Опционально: отдельный домен-прокси для старых URL картинок, если они уже были в БД.
   storagePublicBaseUrl: '',
 };
+
+// Публичный image-proxy для подмены, если старый внешний URL картинки блокируется сетью.
+const IMAGE_PROXY_BASE = 'https://images.weserv.nl/?url=';
+
+// Local API for orders (FastAPI)
+const API_BASE = '/api';
+const USE_API_ORDERS = true;
+
+// Mock admin login (frontend only). Replace placeholders locally and do not commit secrets.
+const MOCK_ADMIN_ENABLED = true;
+const MOCK_ADMIN_EMAIL = 'lower.planet.nsk@gmail.com';
+const MOCK_ADMIN_PASSWORD = 'Phs7iq_h#ZQQ7u@';
+const ADMIN_SESSION_KEY = 'fp_admin_mock';
+
+function loadAdminSession() {
+  return localStorage.getItem(ADMIN_SESSION_KEY) === '1';
+}
+function saveAdminSession(on) {
+  if (on) localStorage.setItem(ADMIN_SESSION_KEY, '1');
+  else localStorage.removeItem(ADMIN_SESSION_KEY);
+}
 
 /* ═══════════════════════════════════════════════════════════════
    EMAILJS_CONFIG — для подтверждений заказов клиенту на email.
@@ -2126,7 +2162,7 @@ const BADGE_CLASSES = { hit:'badge-hit', rare:'badge-rare', new:'badge-new' };
 const BTN_LABELS = { cut:'В заказ', pot:'В заказ', cuttings:'В заказ' };
 
 /* ═══════════════════════════════════════════════════════════════
-   STORAGE — localStorage (deleted IDs + added products)
+   LOCAL FALLBACK — localStorage (deleted IDs + added products)
    ═══════════════════════════════════════════════════════════════ */
 const LS_DELETED = 'fp_deleted';
 const LS_ADDED   = 'fp_added';
@@ -2147,15 +2183,15 @@ function saveAdded(arr) {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   КАТАЛОГ — кэш в памяти; источник истины — Supabase (если настроен).
-   Если Supabase не настроен или БД недоступна — fallback на DEFAULT_PRODUCTS
+   КАТАЛОГ — кэш в памяти; источник истины — FastAPI/Postgres.
+   Если API или БД недоступны — fallback на DEFAULT_PRODUCTS
    + localStorage (старое поведение).
 
    Дополнительно: stale-while-revalidate через localStorage. На повторных
    заходах пользователь сразу видит каталог из кэша браузера (мгновенно),
-   а свежие данные с Supabase подтягиваются в фоне и обновляют рендер.
+   а свежие данные из API подтягиваются в фоне и обновляют рендер.
    ═══════════════════════════════════════════════════════════════ */
-const useDb = !!supabase;
+const useDb = true;
 const STORAGE_PUBLIC_BASE = (SUPABASE_CONFIG.storagePublicBaseUrl || SUPABASE_CONFIG.url || '').replace(/\/$/, '');
 let catalogLoaded = false;
 let PRODUCTS_CACHE = { cut: [], pot: [], cuttings: [] };
@@ -2206,8 +2242,53 @@ function dbRowToJs(row) {
     comp:  row.comp || '',
     price: row.price || '',
     unit:  row.unit || '',
+    sort_order: row.sort_order || 0,
     photo_url: normalizePhotoUrl(row.photo_url) || null,
   };
+}
+
+function toProxyImageUrl(url) {
+  if (!url) return null;
+  try {
+    const u = new URL(url);
+    const clean = `${u.host}${u.pathname}${u.search}`;
+    return IMAGE_PROXY_BASE + encodeURIComponent(clean);
+  } catch { return null; }
+}
+
+function fallbackThumbToEmoji(imgEl) {
+  const thumb = imgEl.closest('.card-thumb');
+  if (!thumb || thumb.querySelector('.thumb-emoji')) return;
+  const emoji = thumb.dataset.emoji || '🌸';
+  const bg = thumb.dataset.bg || emoji;
+  imgEl.remove();
+  thumb.classList.remove('has-photo');
+  const leaf = document.createElement('div');
+  leaf.className = 'leaf-bg';
+  leaf.textContent = bg;
+  const emojiEl = document.createElement('span');
+  emojiEl.className = 'thumb-emoji';
+  emojiEl.textContent = emoji;
+  thumb.insertBefore(leaf, thumb.firstChild);
+  thumb.insertBefore(emojiEl, leaf.nextSibling);
+}
+
+function bindCardImageFallbacks(scope) {
+  (scope || document).querySelectorAll('img.thumb-img').forEach(img => {
+    if (img.dataset.proxyBound) return;
+    img.dataset.proxyBound = '1';
+    img.addEventListener('error', () => {
+      if (img.dataset.proxyTried !== '1') {
+        const proxied = toProxyImageUrl(img.currentSrc || img.src);
+        if (proxied) {
+          img.dataset.proxyTried = '1';
+          img.src = proxied;
+          return;
+        }
+      }
+      fallbackThumbToEmoji(img);
+    });
+  });
 }
 function jsToDbRow(p) {
   return {
@@ -2239,16 +2320,13 @@ function preloadCatalogFromLS() {
   return true;
 }
 
-/** Свежий запрос к Supabase. Обновляет PRODUCTS_CACHE, пишет в localStorage. */
+/** Свежий запрос к FastAPI. Обновляет PRODUCTS_CACHE, пишет в localStorage. */
 async function loadCatalog() {
   if (!useDb) return;
   try {
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .order('section')
-      .order('sort_order');
-    if (error) throw error;
+    const res = await fetch(`${API_BASE}/products`);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
     const cache = { cut: [], pot: [], cuttings: [] };
     for (const row of data) {
       const p = dbRowToJs(row);
@@ -2258,8 +2336,7 @@ async function loadCatalog() {
     catalogLoaded = true;
     writeCatalogToLS(cache);   // запоминаем для следующих заходов
   } catch (e) {
-    console.warn('[Цветочная планета] Каталог из БД не загружен. ' +
-      'Возможно, миграция SQL ещё не выполнена в Supabase. ' +
+    console.warn('[Цветочная планета] Каталог из БД не загружен через API. ' +
       'Сайт работает на встроенном каталоге (DEFAULT_PRODUCTS + localStorage).', e);
     if (!catalogLoaded) catalogLoaded = false;  // не сбрасываем уже загруженный кэш
   }
@@ -2281,18 +2358,23 @@ function getProducts(section) {
 /* Добавить товар в каталог (БД или localStorage) */
 async function addProductToCatalog(p) {
   if (useDb && catalogLoaded) {
-    const { data, error } = await supabase
-      .from('products')
-      .insert(jsToDbRow(p))
-      .select()
-      .single();
-    if (error) {
+    let data;
+    try {
+      const res = await fetch(`${API_BASE}/products`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(jsToDbRow(p)),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      data = await res.json();
+    } catch (error) {
       showToast('Не удалось добавить: ' + (error.message || 'ошибка БД'), 4000);
       return null;
     }
     const created = dbRowToJs(data);
     if (!PRODUCTS_CACHE[created.section]) PRODUCTS_CACHE[created.section] = [];
     PRODUCTS_CACHE[created.section].push(created);
+    PRODUCTS_CACHE[created.section].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
     writeCatalogToLS(PRODUCTS_CACHE);   // обновляем кэш
     return created;
   }
@@ -2303,18 +2385,63 @@ async function addProductToCatalog(p) {
   return p;
 }
 
+/* Обновить товар в каталоге (БД или localStorage) */
+async function updateProductInCatalog(id, oldSection, patch) {
+  if (useDb && catalogLoaded) {
+    let data;
+    const current = findProduct(oldSection, id) || {};
+    try {
+      const res = await fetch(`${API_BASE}/products/${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(jsToDbRow({ ...current, ...patch, id })),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      data = await res.json();
+    } catch (error) {
+      showToast('Не удалось сохранить: ' + (error.message || 'ошибка БД'), 4000);
+      return null;
+    }
+
+    const updated = dbRowToJs(data);
+    for (const sec of Object.keys(PRODUCTS_CACHE || {})) {
+      PRODUCTS_CACHE[sec] = (PRODUCTS_CACHE[sec] || []).filter(p => p.id !== id);
+    }
+    if (!PRODUCTS_CACHE[updated.section]) PRODUCTS_CACHE[updated.section] = [];
+    PRODUCTS_CACHE[updated.section].push(updated);
+    PRODUCTS_CACHE[updated.section].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+    writeCatalogToLS(PRODUCTS_CACHE);
+    syncCartProduct(updated);
+    return updated;
+  }
+
+  const added = getAdded();
+  const idx = added.findIndex(p => p.id === id);
+  if (idx >= 0) {
+    added[idx] = { ...added[idx], ...patch, id };
+    saveAdded(added);
+    syncCartProduct(added[idx]);
+    return added[idx];
+  }
+
+  const deleted = getDeleted();
+  deleted.add(id);
+  saveDeleted(deleted);
+  const clone = { ...patch, id };
+  saveAdded([...added, clone]);
+  syncCartProduct(clone);
+  return clone;
+}
+
 /* Удалить товар из каталога (БД или localStorage) */
 async function deleteProductFromCatalog(id, section) {
   if (useDb && catalogLoaded) {
-    // Перед удалением запоминаем путь к фото, чтобы потом подтереть его в Storage
-    const product = (PRODUCTS_CACHE[section] || []).find(p => p.id === id);
-    const photoPath = storagePathFromUrl(product?.photo_url);
-
-    const { error } = await supabase
-      .from('products')
-      .delete()
-      .eq('id', id);
-    if (error) {
+    try {
+      const res = await fetch(`${API_BASE}/products/${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) throw new Error(await res.text());
+    } catch (error) {
       showToast('Не удалось удалить: ' + (error.message || 'ошибка БД'), 4000);
       return false;
     }
@@ -2322,10 +2449,6 @@ async function deleteProductFromCatalog(id, section) {
       PRODUCTS_CACHE[section] = PRODUCTS_CACHE[section].filter(p => p.id !== id);
     }
     writeCatalogToLS(PRODUCTS_CACHE);   // обновляем кэш
-    // Подчищаем фото из Storage (best-effort, ошибки игнорим)
-    if (photoPath) {
-      supabase.storage.from(STORAGE_BUCKET).remove([photoPath]).catch(()=>{});
-    }
     return true;
   }
   // fallback: дефолтные мечем в fp_deleted, добавленные удаляем из fp_added
@@ -2364,10 +2487,11 @@ let ordersLoaded = false;
  * INSERT возвращает только success/error, и этого достаточно для UI.
  */
 async function saveOrderToDb({ name, phone, email, comment, items, total, hasApprox }) {
-  if (!supabase) return { ok: false, error: 'no-supabase' };
-  const { error } = await supabase
-    .from('orders')
-    .insert({
+  try {
+    const res = await fetch(`${API_BASE}/orders`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
       customer_name:    name,
       customer_phone:   phone,
       customer_email:   email || '',
@@ -2375,8 +2499,10 @@ async function saveOrderToDb({ name, phone, email, comment, items, total, hasApp
       items:            items,
       total_amount:     total,
       has_approx_price: !!hasApprox,
+      }),
     });
-  if (error) {
+    if (!res.ok) return { ok: false, error: await res.text() };
+  } catch (error) {
     console.error('[orders] insert failed:', error);
     return { ok: false, error: error.message };
   }
@@ -2421,7 +2547,25 @@ async function sendOrderConfirmationEmail(orderPayload) {
 
 /** Загрузить все заказы (только если админ) */
 async function fetchOrders() {
-  if (!supabase || !isAdmin) return;
+  if (!isAdmin) return;
+  if (USE_API_ORDERS) {
+    try {
+      const res = await fetch(`${API_BASE}/orders`);
+      if (!res.ok) {
+        showToast('Не удалось загрузить заказы', 4000);
+        return;
+      }
+      ORDERS_CACHE = await res.json();
+      ordersLoaded = true;
+      renderOrders();
+      updateOrdersBadge();
+      return;
+    } catch (e) {
+      showToast('Не удалось загрузить заказы', 4000);
+      return;
+    }
+  }
+  if (!supabase) return;
   const { data, error } = await supabase
     .from('orders')
     .select('*')
@@ -2439,14 +2583,30 @@ async function fetchOrders() {
 
 /** Обновить статус заказа */
 async function updateOrderStatus(id, status) {
-  if (!supabase) return false;
-  const { error } = await supabase
-    .from('orders')
-    .update({ status })
-    .eq('id', id);
-  if (error) {
-    showToast('Не удалось обновить статус: ' + error.message, 4000);
-    return false;
+  if (USE_API_ORDERS) {
+    try {
+      const res = await fetch(`${API_BASE}/orders/${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) {
+        showToast('Не удалось обновить статус', 4000);
+        return false;
+      }
+    } catch {
+      showToast('Не удалось обновить статус', 4000);
+      return false;
+    }
+  } else if (supabase) {
+    const { error } = await supabase
+      .from('orders')
+      .update({ status })
+      .eq('id', id);
+    if (error) {
+      showToast('Не удалось обновить статус: ' + error.message, 4000);
+      return false;
+    }
   }
   const order = ORDERS_CACHE.find(o => o.id === id);
   if (order) order.status = status;
@@ -2456,14 +2616,30 @@ async function updateOrderStatus(id, status) {
 
 /** Сохранить заметку админа */
 async function updateOrderNotes(id, notes) {
-  if (!supabase) return false;
-  const { error } = await supabase
-    .from('orders')
-    .update({ admin_notes: notes })
-    .eq('id', id);
-  if (error) {
-    showToast('Не удалось сохранить заметку: ' + error.message, 4000);
-    return false;
+  if (USE_API_ORDERS) {
+    try {
+      const res = await fetch(`${API_BASE}/orders/${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ admin_notes: notes }),
+      });
+      if (!res.ok) {
+        showToast('Не удалось сохранить заметку', 4000);
+        return false;
+      }
+    } catch {
+      showToast('Не удалось сохранить заметку', 4000);
+      return false;
+    }
+  } else if (supabase) {
+    const { error } = await supabase
+      .from('orders')
+      .update({ admin_notes: notes })
+      .eq('id', id);
+    if (error) {
+      showToast('Не удалось сохранить заметку: ' + error.message, 4000);
+      return false;
+    }
   }
   const order = ORDERS_CACHE.find(o => o.id === id);
   if (order) order.admin_notes = notes;
@@ -2472,14 +2648,28 @@ async function updateOrderNotes(id, notes) {
 
 /** Удалить заказ */
 async function deleteOrder(id) {
-  if (!supabase) return false;
-  const { error } = await supabase
-    .from('orders')
-    .delete()
-    .eq('id', id);
-  if (error) {
-    showToast('Не удалось удалить: ' + error.message, 4000);
-    return false;
+  if (USE_API_ORDERS) {
+    try {
+      const res = await fetch(`${API_BASE}/orders/${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        showToast('Не удалось удалить', 4000);
+        return false;
+      }
+    } catch {
+      showToast('Не удалось удалить', 4000);
+      return false;
+    }
+  } else if (supabase) {
+    const { error } = await supabase
+      .from('orders')
+      .delete()
+      .eq('id', id);
+    if (error) {
+      showToast('Не удалось удалить: ' + error.message, 4000);
+      return false;
+    }
   }
   ORDERS_CACHE = ORDERS_CACHE.filter(o => o.id !== id);
   renderOrders();
@@ -2680,7 +2870,7 @@ function buildCardHTML(p, section) {
   const unitHTML   = p.unit   ? `<span>${esc(p.unit)}</span>` : '';
   const cartControl = buildCartControlHTML(p.id, section);
 
-  // Фото товара: приоритет — публичный URL из БД (Supabase Storage),
+  // Фото товара: приоритет — картинка из БД,
   // запасной вариант — base64 из localStorage (старые фото со старых браузеров).
   const photos   = getPhotos();
   const photoUrl = p.photo_url || photos[p.id] || null;
@@ -2695,8 +2885,9 @@ function buildCardHTML(p, section) {
   return `
     <div class="card" data-id="${esc(p.id)}" data-section="${esc(section)}">
       <button class="btn-delete-card" aria-label="Удалить карточку" title="Удалить">✕</button>
+      <button class="btn-edit-card" aria-label="Редактировать карточку" title="Редактировать">✎</button>
       ${badgeHTML}
-      <div class="card-thumb ${thumbClass}${hasPhoto ? ' has-photo' : ''}">
+      <div class="card-thumb ${thumbClass}${hasPhoto ? ' has-photo' : ''}" data-emoji="${esc(p.emoji)}" data-bg="${esc(p.bg || p.emoji)}">
         ${thumbInner}
         <button class="btn-photo-card" aria-label="Изменить фото" title="Добавить / изменить фото">📷</button>
         <button class="btn-remove-photo" aria-label="Удалить фото" title="Удалить фото">✕</button>
@@ -2738,12 +2929,23 @@ function renderSection(section, instant = false) {
   html += buildAddCardHTML(section);
   grid.innerHTML = html;
 
+  bindCardImageFallbacks(grid);
+
   // Bind delete buttons
   grid.querySelectorAll('.btn-delete-card').forEach(btn => {
     btn.addEventListener('click', e => {
       e.stopPropagation();
       const card = btn.closest('.card');
       openDeleteModal(card.dataset.id, card.dataset.section, card);
+    });
+  });
+
+  // Bind edit buttons
+  grid.querySelectorAll('.btn-edit-card').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const card = btn.closest('.card');
+      openEditModal(card.dataset.id, card.dataset.section);
     });
   });
 
@@ -2765,7 +2967,7 @@ function renderSection(section, instant = false) {
       const section = card.dataset.section;
 
       if (useDb && catalogLoaded) {
-        const res = await removeProductPhotoFromStorage(id);
+        const res = await removeProductPhotoFromDb(id);
         if (!res.ok) { showToast('❌ Не удалось удалить фото: ' + res.error, 4000); return; }
       }
       // Чистим и localStorage-копию (если была)
@@ -2906,7 +3108,7 @@ function setEditMode(on, silent = false) {
   applyAdminUI();
   if (silent) return;
   showToast(editMode
-    ? 'Режим редактирования включён — нажмите ✕ на карточке чтобы удалить'
+    ? 'Режим редактирования включён — ✎ меняет позицию, ✕ удаляет'
     : 'Изменения сохранены');
 }
 
@@ -2950,26 +3152,26 @@ loginForm.addEventListener('submit', async (e) => {
   else                                          { loginPassword.classList.remove('error'); loginPwdErr.classList.remove('show'); }
   if (bad) return;
 
-  if (!supabase) {
-    loginErrorBox.textContent = 'Авторизация не настроена. См. SUPABASE_SETUP.md';
-    loginErrorBox.hidden = false;
-    return;
-  }
-
   loginSubmitBtn.disabled = true;
   loginSubmitBtn.textContent = 'Вход…';
   try {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password: pwd });
-    if (error) {
-      loginErrorBox.textContent = error.message === 'Invalid login credentials'
-        ? 'Неверный email или пароль'
-        : ('Ошибка входа: ' + error.message);
-      loginErrorBox.hidden = false;
+    if (MOCK_ADMIN_ENABLED) {
+      if (email !== MOCK_ADMIN_EMAIL || pwd !== MOCK_ADMIN_PASSWORD) {
+        loginErrorBox.textContent = 'Неверный email или пароль';
+        loginErrorBox.hidden = false;
+        return;
+      }
+      const prev = isAdmin;
+      isAdmin = true;
+      saveAdminSession(true);
+      applyAdminUI();
+      onAdminStateChanged(prev);
+      closeLoginModal();
+      showToast('Добро пожаловать, админ');
       return;
     }
-    // onAuthStateChange сам обновит isAdmin/UI; закрываем модалку
-    closeLoginModal();
-    showToast('Добро пожаловать, ' + (data.user.email || 'админ'));
+    loginErrorBox.textContent = 'Авторизация временно отключена.';
+    loginErrorBox.hidden = false;
   } catch (err) {
     loginErrorBox.textContent = 'Сеть недоступна. Попробуйте ещё раз.';
     loginErrorBox.hidden = false;
@@ -3079,15 +3281,12 @@ adminToggle.addEventListener('click', () => {
 
 /* ─── Sign-out (оптимистичный — UI обновляется сразу, сеть уходит в фон) ─── */
 adminSignout.addEventListener('click', () => {
-  if (!supabase) return;
-  // Мгновенно меняем состояние локально — никаких ожиданий сети.
   const prev = isAdmin;
   isAdmin = false;
+  saveAdminSession(false);
   applyAdminUI();
   onAdminStateChanged(prev);
   showToast('Вы вышли из админки');
-  // Реальный signOut на стороне Supabase делаем в фоне.
-  supabase.auth.signOut().catch(err => console.warn('[auth] signOut error:', err));
 });
 
 /* ─── Esc закрывает модалку логина ──────────────────────────── */
@@ -3113,7 +3312,7 @@ function onAdminStateChanged(prevAdmin) {
   }
 }
 
-if (supabase) {
+if (supabase && !MOCK_ADMIN_ENABLED) {
   // Восстанавливаем сессию из localStorage. Если refresh token истёк или удалён —
   // тихо чистим состояние и продолжаем как анонимный пользователь.
   supabase.auth.getSession()
@@ -3201,129 +3400,48 @@ function compressImage(file, maxW = 900, maxH = 700, quality = 0.8) {
   });
 }
 
-/** Сжать изображение и вернуть Blob (для загрузки в Supabase Storage).
- *  Параметры подобраны под мобильные: ~30-50 КБ на фото, визуально достаточно
- *  для карточки в каталоге (макс ширина карточки — около 380 px). */
-function compressImageToBlob(file, maxW = 800, maxH = 600, quality = 0.78) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = ev => {
-      const img = new Image();
-      img.onload = () => {
-        let w = img.width, h = img.height;
-        if (w > maxW || h > maxH) {
-          const ratio = Math.min(maxW / w, maxH / h);
-          w = Math.round(w * ratio);
-          h = Math.round(h * ratio);
-        }
-        const canvas = document.createElement('canvas');
-        canvas.width  = w;
-        canvas.height = h;
-        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        canvas.toBlob(blob => {
-          if (blob) resolve(blob);
-          else reject(new Error('canvas.toBlob() вернул null'));
-        }, 'image/jpeg', quality);
-      };
-      img.onerror = reject;
-      img.src = ev.target.result;
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
-/* ─── Supabase Storage: фото товаров ─────────────────────────── */
-const STORAGE_BUCKET = 'product-photos';
-
-function makeStoragePublicUrl(path) {
-  return `${STORAGE_PUBLIC_BASE}/storage/v1/object/public/${STORAGE_BUCKET}/${path}`;
-}
-
-/** Извлечь storage-path из публичного URL (для последующего delete). */
-function storagePathFromUrl(url) {
-  if (!url) return null;
-  const marker = '/' + STORAGE_BUCKET + '/';
-  const i = url.indexOf(marker);
-  if (i < 0) return null;
-  return url.slice(i + marker.length);
-}
-
-/** Загрузить фото товара в Storage и обновить products.photo_url + кэш.
- *  Доступно только админу (по RLS). Возвращает {ok, url, error}. */
-async function uploadProductPhotoToStorage(productId, file) {
-  if (!supabase) return { ok: false, error: 'no-supabase' };
-
-  // 1. Сжимаем изображение в Blob
-  let blob;
-  try { blob = await compressImageToBlob(file); }
+/** Загрузить фото товара в БД и обновить products.photo_url + кэш.
+ *  Возвращает {ok, url, error}. */
+async function uploadProductPhotoToDb(productId, file) {
+  let dataUrl;
+  try { dataUrl = await compressImage(file, 900, 700, 0.78); }
   catch (e) { return { ok: false, error: 'compress-failed: ' + e.message }; }
 
-  // 2. Удаляем старое фото из Storage (если было) — чтобы не копились мусорные файлы
-  const oldUrl = (PRODUCTS_CACHE && Object.values(PRODUCTS_CACHE).flat().find(p => p.id === productId) || {}).photo_url;
-  const oldPath = storagePathFromUrl(oldUrl);
-  if (oldPath) {
-    await supabase.storage.from(STORAGE_BUCKET).remove([oldPath]).catch(()=>{});
-  }
-
-  // 3. Загружаем новое
-  const path = `${productId}-${Date.now()}.jpg`;
-  const { error: upErr } = await supabase.storage
-    .from(STORAGE_BUCKET)
-    .upload(path, blob, { contentType: 'image/jpeg', upsert: false });
-  if (upErr) {
-    console.error('[storage] upload failed:', upErr);
-    return { ok: false, error: upErr.message };
-  }
-
-  // 4. Получаем публичный URL
-  const publicUrl = makeStoragePublicUrl(path);
-
-  // 5. Обновляем products.photo_url
-  const { error: dbErr } = await supabase
-    .from('products')
-    .update({ photo_url: publicUrl })
-    .eq('id', productId);
-  if (dbErr) {
-    // Если БД-update упал — почистим только что загруженный файл, чтобы не копились дубликаты
-    await supabase.storage.from(STORAGE_BUCKET).remove([path]).catch(()=>{});
-    console.error('[storage] products.photo_url update failed:', dbErr);
-    return { ok: false, error: dbErr.message };
-  }
-
-  // 6. Обновляем кэш
-  for (const sec of Object.keys(PRODUCTS_CACHE || {})) {
-    const list = PRODUCTS_CACHE[sec];
-    const target = list && list.find(p => p.id === productId);
-    if (target) target.photo_url = publicUrl;
-  }
-  writeCatalogToLS(PRODUCTS_CACHE);
-  return { ok: true, url: publicUrl };
-}
-
-/** Удалить фото товара из Storage и обнулить products.photo_url. */
-async function removeProductPhotoFromStorage(productId) {
-  if (!supabase) return { ok: false, error: 'no-supabase' };
-
-  const product = Object.values(PRODUCTS_CACHE || {}).flat().find(p => p.id === productId);
-  const oldPath = storagePathFromUrl(product?.photo_url);
-
-  // 1. Удаляем файл из bucket (если есть путь)
-  if (oldPath) {
-    await supabase.storage.from(STORAGE_BUCKET).remove([oldPath]).catch(()=>{});
-  }
-
-  // 2. Обнуляем колонку
-  const { error } = await supabase
-    .from('products')
-    .update({ photo_url: null })
-    .eq('id', productId);
-  if (error) {
-    console.error('[storage] clear photo_url failed:', error);
+  try {
+    const res = await fetch(`${API_BASE}/products/${encodeURIComponent(productId)}/photo`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ photo_url: dataUrl }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+  } catch (error) {
+    console.error('[products] photo update failed:', error);
     return { ok: false, error: error.message };
   }
 
-  // 3. Кэш
+  for (const sec of Object.keys(PRODUCTS_CACHE || {})) {
+    const list = PRODUCTS_CACHE[sec];
+    const target = list && list.find(p => p.id === productId);
+    if (target) target.photo_url = dataUrl;
+  }
+  writeCatalogToLS(PRODUCTS_CACHE);
+  return { ok: true, url: dataUrl };
+}
+
+/** Удалить фото товара из БД и обнулить products.photo_url. */
+async function removeProductPhotoFromDb(productId) {
+  try {
+    const res = await fetch(`${API_BASE}/products/${encodeURIComponent(productId)}/photo`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ photo_url: null }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+  } catch (error) {
+    console.error('[products] clear photo_url failed:', error);
+    return { ok: false, error: error.message };
+  }
+
   for (const sec of Object.keys(PRODUCTS_CACHE || {})) {
     const list = PRODUCTS_CACHE[sec];
     const target = list && list.find(p => p.id === productId);
@@ -3356,8 +3474,8 @@ cardPhotoInput.addEventListener('change', async () => {
   try {
     showToast('⏳ Загружаю фото…');
     if (useDb && catalogLoaded) {
-      // Основной путь: Supabase Storage — фото станет видно всем устройствам
-      const res = await uploadProductPhotoToStorage(id, file);
+      // Основной путь: Postgres — фото станет видно всем устройствам
+      const res = await uploadProductPhotoToDb(id, file);
       if (!res.ok) {
         showToast('❌ Не удалось загрузить: ' + res.error, 4000);
         return;
@@ -3381,19 +3499,73 @@ cardPhotoInput.addEventListener('change', async () => {
    ═══════════════════════════════════════════════════════════════ */
 const addModal     = document.getElementById('addModal');
 const addForm      = document.getElementById('addForm');
+const addModalTitle = document.getElementById('addModalTitle');
+const addModalSub   = document.getElementById('addModalSub');
+const addFormSubmit = document.getElementById('addFormSubmit');
 const afSection    = document.getElementById('af-section');
 const afEmoji      = document.getElementById('af-emoji');
 const emojiPreview = document.getElementById('af-emoji-preview');
+let productFormMode = 'create';
+let editingProduct = null; // { id, section }
 
 function openAddModal(preselect) {
+  productFormMode = 'create';
+  editingProduct = null;
+  addModalTitle.textContent = 'Новая позиция';
+  addModalSub.textContent = 'Заполните поля — карточка появится в выбранном разделе';
+  addFormSubmit.textContent = 'Добавить в каталог';
+  addFormSubmit.disabled = false;
   addModal.removeAttribute('hidden');
   requestAnimationFrame(() => addModal.classList.add('open'));
   if (preselect) afSection.value = preselect;
   afEmoji.focus();
 }
 
+function findProduct(section, id) {
+  return (getProducts(section) || []).find(p => p.id === id) || null;
+}
+
+function openEditModal(id, section) {
+  const product = findProduct(section, id);
+  if (!product) {
+    showToast('Позиция не найдена', 3000);
+    return;
+  }
+
+  productFormMode = 'edit';
+  editingProduct = { id, section };
+  clearAddErrors();
+  addForm.reset();
+  addFormPhotoFile = null;
+  addFormPhotoDataUrl = null;
+  afPreviewImg.src = '';
+  afPreviewWrap.classList.remove('show');
+  afDropZone.style.display = '';
+  afPhotoInput.value = '';
+
+  addModalTitle.textContent = 'Редактировать позицию';
+  addModalSub.textContent = 'Изменения сохранятся в базе данных и сразу обновят каталог';
+  addFormSubmit.textContent = 'Сохранить изменения';
+  addFormSubmit.disabled = false;
+
+  afSection.value = product.section || section;
+  afEmoji.value = product.emoji || '';
+  emojiPreview.textContent = product.emoji || '🌸';
+  document.getElementById('af-name1').value = product.name1 || '';
+  document.getElementById('af-name2').value = product.name2 || '';
+  document.getElementById('af-latin').value = product.latin || '';
+  document.getElementById('af-desc').value = product.desc || '';
+  document.getElementById('af-price').value = product.price || '';
+  document.getElementById('af-unit').value = product.unit || '';
+  document.getElementById('af-badge').value = product.badge || '';
+
+  addModal.removeAttribute('hidden');
+  requestAnimationFrame(() => addModal.classList.add('open'));
+  setTimeout(() => document.getElementById('af-name1').focus(), 50);
+}
+
 /* Photo state for add form
-   addFormPhotoFile     — оригинальный File для загрузки в Supabase Storage
+   addFormPhotoFile     — оригинальный File для сохранения в БД
    addFormPhotoDataUrl  — base64-копия для предпросмотра + fallback в localStorage */
 let addFormPhotoFile    = null;
 let addFormPhotoDataUrl = null;
@@ -3447,6 +3619,12 @@ function closeAddModal() {
   addModal.classList.remove('open');
   setTimeout(() => addModal.setAttribute('hidden', ''), 220);
   addForm.reset();
+  productFormMode = 'create';
+  editingProduct = null;
+  addModalTitle.textContent = 'Новая позиция';
+  addModalSub.textContent = 'Заполните поля — карточка появится в выбранном разделе';
+  addFormSubmit.textContent = 'Добавить в каталог';
+  addFormSubmit.disabled = false;
   emojiPreview.textContent = '🌸';
   // reset photo
   addFormPhotoFile    = null;
@@ -3498,8 +3676,8 @@ addForm.addEventListener('submit', async e => {
   if (!ok) return;
 
   const section = afSection.value;
-  const newProduct = {
-    id:      'user-' + Date.now(),
+  const productPayload = {
+    id:      productFormMode === 'edit' && editingProduct ? editingProduct.id : 'user-' + Date.now(),
     section: section,
     emoji:   document.getElementById('af-emoji').value.trim(),
     bg:      document.getElementById('af-emoji').value.trim(),
@@ -3510,24 +3688,34 @@ addForm.addEventListener('submit', async e => {
     desc:    document.getElementById('af-desc').value.trim(),
     price:   document.getElementById('af-price').value.trim(),
     unit:    document.getElementById('af-unit').value.trim(),
+    sort_order: productFormMode === 'edit' && editingProduct
+      ? (findProduct(editingProduct.section, editingProduct.id)?.sort_order || 0)
+      : 0,
   };
 
   // Блокируем сабмит, пока идёт запись в БД
   const submitBtn = addForm.querySelector('button[type="submit"]');
   if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Сохраняю…'; }
 
-  const saved = await addProductToCatalog(newProduct);
+  const oldSection = editingProduct?.section || section;
+  const wasEdit = productFormMode === 'edit' && editingProduct;
+  const saved = wasEdit
+    ? await updateProductInCatalog(editingProduct.id, oldSection, productPayload)
+    : await addProductToCatalog(productPayload);
 
   if (!saved) {
-    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Добавить в каталог'; }
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = productFormMode === 'edit' ? 'Сохранить изменения' : 'Добавить в каталог';
+    }
     return; // ошибка уже показана в toast
   }
 
-  // Если приложили фото — грузим его в Storage (или в localStorage, если БД нет)
+  // Если приложили фото — сохраняем его в БД (или в localStorage, если БД нет)
   if (addFormPhotoFile) {
     if (submitBtn) submitBtn.textContent = 'Загружаю фото…';
     if (useDb && catalogLoaded) {
-      const r = await uploadProductPhotoToStorage(saved.id, addFormPhotoFile);
+      const r = await uploadProductPhotoToDb(saved.id, addFormPhotoFile);
       if (!r.ok) {
         showToast('Товар добавлен, но фото не загрузилось: ' + r.error, 4000);
       }
@@ -3537,12 +3725,16 @@ addForm.addEventListener('submit', async e => {
     }
   }
 
-  if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Добавить в каталог'; }
+  if (submitBtn) {
+    submitBtn.disabled = false;
+    submitBtn.textContent = productFormMode === 'edit' ? 'Сохранить изменения' : 'Добавить в каталог';
+  }
 
+  if (oldSection !== section) renderSection(oldSection, true);
   renderSection(section, true);
   switchTab(section);
   closeAddModal();
-  showToast('✅ Позиция добавлена в каталог');
+  showToast(wasEdit ? '✅ Позиция обновлена' : '✅ Позиция добавлена в каталог');
 });
 
 // Live clear errors on input
@@ -3818,6 +4010,29 @@ function addToCart(product, section) {
   showToast('✅ Добавлено в корзину');
 }
 
+function syncCartProduct(product) {
+  const cart = getCart();
+  let changed = false;
+  const photos = getPhotos();
+  for (const item of cart) {
+    if (item.id !== product.id) continue;
+    item.name = [product.name1, product.name2].filter(Boolean).join(' ');
+    item.emoji = product.emoji || '';
+    item.photo = product.photo_url || photos[product.id] || null;
+    item.price = parsePrice(product.price);
+    item.priceStr = product.price || '';
+    item.unit = product.unit || '';
+    item.section = product.section || item.section;
+    changed = true;
+  }
+  if (changed) {
+    saveCart(cart);
+    updateCartBadge();
+    renderCartItems();
+    syncCardFooterUI(product.id);
+  }
+}
+
 function removeFromCart(id) {
   saveCart(getCart().filter(i => i.id !== id));
   updateCartBadge();
@@ -4083,10 +4298,10 @@ document.getElementById('checkoutForm').addEventListener('submit', async e => {
     hasApprox:  hasApproxPrice(),
   };
 
-  // 1. Пишем в Supabase. Это основной канал — заказ должен попасть в админку.
+  // 1. Пишем в FastAPI/Postgres. Это основной канал — заказ должен попасть в админку.
   let dbOk = false;
   let dbError = null;
-  if (supabase) {
+  if (USE_API_ORDERS) {
     const result = await saveOrderToDb(orderPayload);
     dbOk = result.ok;
     if (!dbOk) {
@@ -4101,7 +4316,7 @@ document.getElementById('checkoutForm').addEventListener('submit', async e => {
     fetch('https://api.web3forms.com/submit', { method: 'POST', body: formData }).catch(()=>{});
   } catch {}
 
-  if (supabase && !dbOk) {
+  if (USE_API_ORDERS && !dbOk) {
     btn.disabled = false;
     btn.textContent = 'Отправить заказ';
     // Превращаем технические ошибки rate-limit/констрейнтов в понятный текст
@@ -4109,7 +4324,7 @@ document.getElementById('checkoutForm').addEventListener('submit', async e => {
     showToast(friendly || 'Не удалось оформить заказ. Попробуйте ещё раз или позвоните нам.', 4000);
     return;
   }
-  // Если supabase не настроен — считаем успехом отправку email через web3forms (старое поведение)
+  // Если API отключили — считаем успехом отправку email через web3forms (старое поведение)
 
   setLastOrderAt(Date.now());          // фиксируем cooldown
   saveCart([]);
@@ -4140,6 +4355,12 @@ document.getElementById('checkoutForm').addEventListener('submit', async e => {
   updateCartBadge();
   observeCards();
   bindOrdersUI();
+  if (MOCK_ADMIN_ENABLED) {
+    const prev = isAdmin;
+    isAdmin = loadAdminSession();
+    applyAdminUI();
+    onAdminStateChanged(prev);
+  }
 
   // На мобильном — прокрутить активную вкладку в зону видимости горизонтального скролла.
   const activeBtn = document.querySelector('.tab-btn.active');
