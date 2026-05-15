@@ -2031,8 +2031,11 @@ try {
    (Project Settings → API). Подробности — в SUPABASE_SETUP.md
    ═══════════════════════════════════════════════════════════════ */
 const SUPABASE_CONFIG = {
+  // Если .supabase.co недоступен в РФ, укажите тут домен-прокси (например, api.flower-planet-nsk.ru).
   url:     'https://xonizpnbqcgusjrlahue.supabase.co',
   anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhvbml6cG5icWNndXNqcmxhaHVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2Mjk2MTksImV4cCI6MjA5MzIwNTYxOX0.OjwUGVtrd_GLPUi6JDqSNUgr4MM6wrVTno-ycokK11M',
+  // Опционально: отдельный домен-прокси именно для Storage (если отличается от url).
+  storagePublicBaseUrl: '',
 };
 
 /* ═══════════════════════════════════════════════════════════════
@@ -2153,6 +2156,7 @@ function saveAdded(arr) {
    а свежие данные с Supabase подтягиваются в фоне и обновляют рендер.
    ═══════════════════════════════════════════════════════════════ */
 const useDb = !!supabase;
+const STORAGE_PUBLIC_BASE = (SUPABASE_CONFIG.storagePublicBaseUrl || SUPABASE_CONFIG.url || '').replace(/\/$/, '');
 let catalogLoaded = false;
 let PRODUCTS_CACHE = { cut: [], pot: [], cuttings: [] };
 const LS_CATALOG_CACHE = 'fp_catalog_cache_v1';
@@ -2175,6 +2179,19 @@ function writeCatalogToLS(cache) {
 }
 
 /* Маппинг между схемой БД и форматом, который ожидает рендер */
+function normalizePhotoUrl(url) {
+  if (!url || !STORAGE_PUBLIC_BASE) return url || null;
+  try {
+    const u = new URL(url);
+    const baseHost = new URL(STORAGE_PUBLIC_BASE).host;
+    if (u.host === baseHost) return url;
+    if (u.host.endsWith('.supabase.co')) {
+      return STORAGE_PUBLIC_BASE + u.pathname + u.search + u.hash;
+    }
+  } catch {}
+  return url;
+}
+
 function dbRowToJs(row) {
   return {
     id:    row.id,
@@ -2189,7 +2206,7 @@ function dbRowToJs(row) {
     comp:  row.comp || '',
     price: row.price || '',
     unit:  row.unit || '',
-    photo_url: row.photo_url || null,
+    photo_url: normalizePhotoUrl(row.photo_url) || null,
   };
 }
 function jsToDbRow(p) {
@@ -3219,6 +3236,10 @@ function compressImageToBlob(file, maxW = 800, maxH = 600, quality = 0.78) {
 /* ─── Supabase Storage: фото товаров ─────────────────────────── */
 const STORAGE_BUCKET = 'product-photos';
 
+function makeStoragePublicUrl(path) {
+  return `${STORAGE_PUBLIC_BASE}/storage/v1/object/public/${STORAGE_BUCKET}/${path}`;
+}
+
 /** Извлечь storage-path из публичного URL (для последующего delete). */
 function storagePathFromUrl(url) {
   if (!url) return null;
@@ -3256,8 +3277,7 @@ async function uploadProductPhotoToStorage(productId, file) {
   }
 
   // 4. Получаем публичный URL
-  const { data: pub } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
-  const publicUrl = pub.publicUrl;
+  const publicUrl = makeStoragePublicUrl(path);
 
   // 5. Обновляем products.photo_url
   const { error: dbErr } = await supabase
